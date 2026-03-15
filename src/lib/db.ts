@@ -14,8 +14,4 @@ sqlite.pragma('foreign_keys = ON');
 
 export const db = drizzle(sqlite, { schema });
 
-try {
-  migrate(db, { migrationsFolder: './drizzle' });
-} catch {
-  // bun run db:generate first
-}
+migrate(db, { migrationsFolder: './drizzle' });
