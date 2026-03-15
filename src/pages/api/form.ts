@@ -1,0 +1,104 @@
+import type { APIRoute } from 'astro';
+import { db } from '../../lib/db';
+import { forms, rsvps, feedback } from '../../lib/schema';
+import { eq, count } from 'drizzle-orm';
+
+const MAX_FORMS_PER_USER = 3;
+
+const RESERVED_SLUGS = new Set([
+  'new', 'auth', 'api', 'admin', 'login', 'logout', 'callback', 'dashboard',
+]);
+
+export const POST: APIRoute = async ({ request, locals, redirect }) => {
+  if (!locals.user) {
+    return redirect('/auth/login');
+  }
+
+  const data = await request.formData();
+  const method = data.get('_method') as string;
+
+  if (method === 'PATCH') {
+    const id = data.get('id') as string;
+    const form = await db.select().from(forms).where(eq(forms.id, id)).get();
+
+    if (!form || form.creatorId !== locals.user.id) {
+      return new Response('Not found', { status: 404 });
+    }
+
+    const slackChannelId = (data.get('slackChannelId') as string)?.trim() || null;
+
+    await db
+      .update(forms)
+      .set({
+        isOpen: data.has('isOpen'),
+        isPublic: data.has('isPublic'),
+        feedbackEnabled: data.has('feedbackEnabled'),
+        slackChannelId,
+      })
+      .where(eq(forms.id, id));
+
+    return redirect(`/${form.slug}/manage`);
+  }
+
+  if (method === 'DELETE') {
+    const id = data.get('id') as string;
+    const form = await db.select().from(forms).where(eq(forms.id, id)).get();
+
+    if (!form || form.creatorId !== locals.user.id) {
+      return new Response('Not found', { status: 404 });
+    }
+
+    await db.delete(feedback).where(eq(feedback.formId, id));
+    await db.delete(rsvps).where(eq(rsvps.formId, id));
+    await db.delete(forms).where(eq(forms.id, id));
+
+    return redirect('/');
+  }
+
+  if (!import.meta.env.DEV && !locals.user.isAllowed) {
+    return redirect('/new?error=Your account is not eligible for YSWS programs');
+  }
+
+  const formCount = (
+    await db.select({ value: count() }).from(forms).where(eq(forms.creatorId, locals.user.id)).get()
+  )?.value ?? 0;
+
+  if (formCount >= MAX_FORMS_PER_USER) {
+    return redirect(`/new?error=You can create up to ${MAX_FORMS_PER_USER} forms`);
+  }
+
+  const title = (data.get('title') as string)?.trim();
+  const slug = (data.get('slug') as string)?.toLowerCase().trim();
+  const description = (data.get('description') as string)?.trim() || null;
+  const feedbackEnabled = data.has('feedbackEnabled');
+  const slackChannelId = (data.get('slackChannelId') as string)?.trim() || null;
+
+  if (!title || !slug) {
+    return redirect('/new?error=Title and URL are required');
+  }
+
+  if (!/^[a-z0-9-]+$/.test(slug)) {
+    return redirect('/new?error=URL can only contain lowercase letters, numbers, and hyphens');
+  }
+
+  if (RESERVED_SLUGS.has(slug)) {
+    return redirect('/new?error=That URL is reserved');
+  }
+
+  const existing = await db.select().from(forms).where(eq(forms.slug, slug)).get();
+  if (existing) {
+    return redirect('/new?error=That URL is already taken');
+  }
+
+  await db.insert(forms).values({
+    id: crypto.randomUUID(),
+    slug,
+    title,
+    description,
+    creatorId: locals.user.id,
+    feedbackEnabled,
+    slackChannelId,
+  });
+
+  return redirect(`/${slug}/manage`);
+};

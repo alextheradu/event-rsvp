@@ -1,0 +1,44 @@
+---
+import Nav from '../components/Nav.astro';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  ogImage?: string;
+  minimal?: boolean;
+}
+
+const { title = 'RSVP', description = 'Quick RSVPs for You Ship, We Ship programs', ogImage, minimal = false } = Astro.props;
+const siteUrl = import.meta.env.PUBLIC_URL || 'http://localhost:4321';
+const canonicalUrl = new URL(Astro.url.pathname, siteUrl).href;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:type" content="website" />
+    {ogImage && <meta property="og:image" content={ogImage} />}
+
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body class="bg-zinc-950 text-zinc-100 min-h-screen font-sans antialiased">
+    {!minimal && <Nav user={Astro.locals.user} minimal={false} />}
+    <main class="max-w-3xl mx-auto px-4 py-12">
+      <slot />
+    </main>
+  </body>
+</html>

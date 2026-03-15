@@ -1,0 +1,196 @@
+---
+import Base from '../../layouts/Base.astro';
+import { db } from '../../lib/db';
+import { forms, rsvps, users, feedback as feedbackTable } from '../../lib/schema';
+import { eq } from 'drizzle-orm';
+
+const { slug } = Astro.params;
+const user = Astro.locals.user;
+
+if (!user) {
+  return Astro.redirect(`/auth/login?return=/${slug}/manage`);
+}
+
+const form = await db.select().from(forms).where(eq(forms.slug, slug!)).get();
+
+if (!form || form.creatorId !== user.id) {
+  return new Response('Not found', { status: 404 });
+}
+
+const rsvpList = await db
+  .select({
+    name: users.name,
+    avatarUrl: users.avatarUrl,
+    rsvpDate: rsvps.createdAt,
+  })
+  .from(rsvps)
+  .innerJoin(users, eq(rsvps.userId, users.id))
+  .where(eq(rsvps.formId, form.id))
+  .orderBy(rsvps.createdAt);
+
+const feedbackList = form.feedbackEnabled
+  ? await db
+      .select({
+        id: feedbackTable.id,
+        content: feedbackTable.content,
+        name: users.name,
+        avatarUrl: users.avatarUrl,
+        createdAt: feedbackTable.createdAt,
+      })
+      .from(feedbackTable)
+      .innerJoin(users, eq(feedbackTable.userId, users.id))
+      .where(eq(feedbackTable.formId, form.id))
+      .orderBy(feedbackTable.createdAt)
+  : [];
+
+const total = rsvpList.length;
+const siteUrl = import.meta.env.PUBLIC_URL || 'http://localhost:4321';
+---
+
+<Base title={`Manage - ${form.title}`}>
+  <div class="max-w-2xl mx-auto space-y-10">
+    <div>
+      <a href={`/${slug}`} class="text-sm text-zinc-500 hover:text-zinc-300 transition-colors">
+        Back to form
+      </a>
+      <h1 class="text-2xl font-bold tracking-tight mt-4">{form.title}</h1>
+      <div class="flex items-center gap-3 mt-2">
+        <span class="text-zinc-500 text-sm">{total} RSVPs</span>
+        <span class="text-zinc-800">·</span>
+        <span class="text-xs text-zinc-600 font-mono select-all">{siteUrl}/{slug}</span>
+      </div>
+    </div>
+
+    <section class="bg-zinc-900/50 rounded-2xl border border-zinc-800/60 p-6 space-y-5">
+      <h2 class="text-sm font-medium text-zinc-500 uppercase tracking-wide">Settings</h2>
+      <form method="POST" action="/api/form" class="space-y-4">
+        <input type="hidden" name="id" value={form.id} />
+        <input type="hidden" name="_method" value="PATCH" />
+
+        <label class="flex items-center gap-3 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            name="isOpen"
+            checked={form.isOpen}
+            class="rounded border-zinc-700 bg-zinc-800 text-primary focus:ring-0"
+          />
+          <span class="text-sm text-zinc-300">Accepting RSVPs</span>
+        </label>
+
+        <label class="flex items-center gap-3 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            name="isPublic"
+            checked={form.isPublic}
+            class="rounded border-zinc-700 bg-zinc-800 text-primary focus:ring-0"
+          />
+          <span class="text-sm text-zinc-300">Public</span>
+        </label>
+
+        <label class="flex items-center gap-3 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            name="feedbackEnabled"
+            checked={form.feedbackEnabled}
+            class="rounded border-zinc-700 bg-zinc-800 text-primary focus:ring-0"
+          />
+          <span class="text-sm text-zinc-300">Enable feedback</span>
+        </label>
+
+        <div class="space-y-1.5 pt-1">
+          <label for="slackChannelId" class="block text-sm text-zinc-300">Slack channel ID</label>
+          <input
+            type="text"
+            id="slackChannelId"
+            name="slackChannelId"
+            value={form.slackChannelId || ''}
+            class="w-full bg-zinc-800/50 border border-zinc-700/50 rounded-xl px-4 py-2.5 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all text-sm"
+            placeholder="C0123456789"
+          />
+          <p class="text-xs text-zinc-600">People who RSVP will be invited to this channel.</p>
+        </div>
+
+        <button
+          type="submit"
+          class="bg-zinc-800 text-zinc-200 px-5 py-2.5 rounded-xl hover:bg-zinc-700 transition-colors text-sm font-medium mt-1"
+        >
+          Save settings
+        </button>
+      </form>
+    </section>
+
+    <section>
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-sm font-medium text-zinc-500 uppercase tracking-wide">RSVPs</h2>
+        <a
+          href={`/${slug}/stats`}
+          class="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+        >
+          Public stats page
+        </a>
+      </div>
+      {total === 0 ? (
+        <p class="text-zinc-600 text-sm text-center py-10">No RSVPs yet.</p>
+      ) : (
+        <div class="space-y-1.5">
+          {rsvpList.map(({ name, avatarUrl, rsvpDate }) => (
+            <div class="flex items-center gap-3 p-3.5 bg-zinc-900/50 rounded-xl border border-zinc-800/60">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="" class="w-8 h-8 rounded-full" />
+              ) : (
+                <div class="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm text-zinc-500 font-medium">
+                  {name.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <span class="flex-1 text-sm font-medium truncate">{name}</span>
+              <span class="text-xs text-zinc-600 shrink-0">{rsvpDate.toLocaleDateString()}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+
+    {form.feedbackEnabled && (
+      <section>
+        <h2 class="text-sm font-medium text-zinc-500 uppercase tracking-wide mb-4">Feedback</h2>
+        {feedbackList.length === 0 ? (
+          <p class="text-zinc-600 text-sm text-center py-10">No feedback yet.</p>
+        ) : (
+          <div class="space-y-2">
+            {feedbackList.map(({ content, name, avatarUrl, createdAt }) => (
+              <div class="p-4 bg-zinc-900/50 rounded-xl border border-zinc-800/60">
+                <p class="text-sm text-zinc-300 leading-relaxed">{content}</p>
+                <div class="flex items-center gap-2 mt-3">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="" class="w-5 h-5 rounded-full" />
+                  ) : (
+                    <div class="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center text-[10px] text-zinc-500 font-medium">
+                      {name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <span class="text-xs text-zinc-500">{name}</span>
+                  <span class="text-xs text-zinc-700">·</span>
+                  <span class="text-xs text-zinc-600">{createdAt.toLocaleDateString()}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    )}
+
+    <section class="bg-zinc-900/50 rounded-2xl border border-red-900/20 p-6 space-y-3">
+      <h2 class="text-sm font-medium text-red-400 uppercase tracking-wide">Danger zone</h2>
+      <form method="POST" action="/api/form" onsubmit="return confirm('Delete this form and all its data? This cannot be undone.')">
+        <input type="hidden" name="id" value={form.id} />
+        <input type="hidden" name="_method" value="DELETE" />
+        <button
+          type="submit"
+          class="bg-red-950/30 text-red-400 px-5 py-2.5 rounded-xl hover:bg-red-950/50 transition-colors text-sm font-medium"
+        >
+          Delete form
+        </button>
+      </form>
+    </section>
+  </div>
+</Base>

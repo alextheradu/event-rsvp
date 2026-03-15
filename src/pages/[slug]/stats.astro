@@ -1,0 +1,69 @@
+---
+import Base from '../../layouts/Base.astro';
+import { db } from '../../lib/db';
+import { forms, rsvps, users } from '../../lib/schema';
+import { eq } from 'drizzle-orm';
+
+const { slug } = Astro.params;
+const user = Astro.locals.user;
+
+const form = await db.select().from(forms).where(eq(forms.slug, slug!)).get();
+
+if (!form) {
+  return new Response('Not found', { status: 404 });
+}
+
+if (!form.isPublic && (!user || form.creatorId !== user.id)) {
+  return new Response('Not found', { status: 404 });
+}
+
+const rsvpList = await db
+  .select({
+    name: users.name,
+    avatarUrl: users.avatarUrl,
+    rsvpDate: rsvps.createdAt,
+  })
+  .from(rsvps)
+  .innerJoin(users, eq(rsvps.userId, users.id))
+  .where(eq(rsvps.formId, form.id))
+  .orderBy(rsvps.createdAt);
+
+const total = rsvpList.length;
+---
+
+<Base
+  title={`${form.title} - Stats`}
+  description={`${total} ${total === 1 ? 'person' : 'people'} RSVP'd for ${form.title}`}
+>
+  <div class="max-w-2xl mx-auto space-y-8">
+    <div>
+      <a href={`/${slug}`} class="text-sm text-zinc-500 hover:text-zinc-300 transition-colors">
+        Back to form
+      </a>
+      <h1 class="text-2xl font-bold tracking-tight mt-4">{form.title}</h1>
+      <p class="text-zinc-500 mt-1">
+        {total} {total === 1 ? 'person' : 'people'} RSVP'd
+      </p>
+    </div>
+
+    {total === 0 ? (
+      <p class="text-zinc-600 text-sm text-center py-14">No RSVPs yet.</p>
+    ) : (
+      <div class="space-y-1.5">
+        {rsvpList.map(({ name, avatarUrl, rsvpDate }) => (
+          <div class="flex items-center gap-3 p-3.5 bg-zinc-900/50 rounded-xl border border-zinc-800/60">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="" class="w-8 h-8 rounded-full" />
+            ) : (
+              <div class="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm text-zinc-500 font-medium">
+                {name.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <span class="flex-1 text-sm font-medium truncate">{name}</span>
+            <span class="text-xs text-zinc-600 shrink-0">{rsvpDate.toLocaleDateString()}</span>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+</Base>
