@@ -5,5 +5,13 @@ services:
     volumes:
       - data:/app/data
 
+  newt:
+    image: fosrl/newt
+    restart: unless-stopped
+    environment:
+      - PANGOLIN_ENDPOINT=${PANGOLIN_ENDPOINT}
+      - NEWT_ID=${NEWT_ID}
+      - NEWT_SECRET=${NEWT_SECRET}
+
 volumes:
   data:
