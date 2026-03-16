@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../lib/db';
-import { rsvps, forms, users } from '../../lib/schema';
+import { rsvps, forms, users, feedback } from '../../lib/schema';
 import { eq, and } from 'drizzle-orm';
 import { inviteToChannel } from '../../lib/slack';
 
@@ -23,10 +23,12 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
   }
 
   if (method === 'DELETE') {
-    await db
-      .delete(rsvps)
-      .where(and(eq(rsvps.formId, formId), eq(rsvps.userId, locals.user.id)));
+    await db.delete(feedback).where(and(eq(feedback.formId, formId), eq(feedback.userId, locals.user.id)));
+    await db.delete(rsvps).where(and(eq(rsvps.formId, formId), eq(rsvps.userId, locals.user.id)));
   } else {
+    if (form.creatorId === locals.user.id) {
+      return new Response('Cannot RSVP to your own event', { status: 403 });
+    }
     if (!import.meta.env.DEV && !locals.user.isAllowed) {
       return new Response('Not eligible for YSWS programs', { status: 403 });
     }

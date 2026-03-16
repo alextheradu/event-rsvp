@@ -20,6 +20,8 @@ if (!form.isPublic && (!user || form.creatorId !== user.id)) {
 const total =
   (await db.select({ value: count() }).from(rsvps).where(eq(rsvps.formId, form.id)).get())
     ?.value ?? 0;
+
+const isManager = user && (user.id === form.creatorId || user.slackId === import.meta.env.ADMIN_ID);
 ---
 
 <Base
@@ -27,8 +29,8 @@ const total =
   description={`${total} ${total === 1 ? 'person' : 'people'} RSVP'd for ${form.title}`}
 >
   <div class="max-w-2xl mx-auto space-y-4">
-    <a href={`/${slug}`} class="text-sm text-zinc-500 hover:text-zinc-300 transition-colors">
-      Back to form
+    <a href={isManager ? `/${slug}/manage` : `/${slug}`} class="text-sm text-zinc-500 hover:text-zinc-300 transition-colors">
+      {isManager ? 'Back to manage' : 'Back to form'}
     </a>
     <h1 class="text-2xl font-bold tracking-tight">{form.title}</h1>
     <p class="text-zinc-400">

@@ -4,6 +4,7 @@ import { forms, rsvps, feedback } from '../../lib/schema';
 import { eq, count } from 'drizzle-orm';
 
 const MAX_FORMS_PER_USER = 3;
+const SLACK_CHANNEL_RE = /^[A-Z][A-Z0-9]{6,12}$/;
 
 const RESERVED_SLUGS = new Set([
   'new', 'auth', 'api', 'admin', 'login', 'logout', 'callback', 'dashboard',
@@ -26,7 +27,11 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
       return new Response('Not found', { status: 404 });
     }
 
-    const slackChannelId = (data.get('slackChannelId') as string)?.trim() || null;
+    const slackChannelIdRaw = (data.get('slackChannelId') as string)?.trim() || null;
+    if (slackChannelIdRaw && !SLACK_CHANNEL_RE.test(slackChannelIdRaw)) {
+      return redirect(`/${form.slug}/manage?error=Invalid Slack channel ID`);
+    }
+    const slackChannelId = slackChannelIdRaw;
 
     await db
       .update(forms)
@@ -73,6 +78,10 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
   const description = (data.get('description') as string)?.trim() || null;
   const feedbackEnabled = data.has('feedbackEnabled');
   const slackChannelId = (data.get('slackChannelId') as string)?.trim() || null;
+
+  if (slackChannelId && !SLACK_CHANNEL_RE.test(slackChannelId)) {
+    return redirect('/new?error=Invalid Slack channel ID');
+  }
 
   if (!title || !slug) {
     return redirect('/new?error=Title and URL are required');

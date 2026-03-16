@@ -108,6 +108,8 @@ const siteUrl = import.meta.env.PUBLIC_URL || 'http://localhost:4321';
             value={form.slackChannelId || ''}
             class="w-full bg-zinc-800/50 border border-zinc-700/50 rounded-xl px-4 py-2.5 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all text-sm"
             placeholder="C0123456789"
+            pattern="[A-Z][A-Z0-9]{6,12}"
+            title="Slack channel ID (e.g. C0123456789)"
           />
           <p class="text-xs text-zinc-600">People who RSVP will be invited to this channel.</p>
         </div>
