@@ -1,7 +1,14 @@
 services:
   app:
     build: .
-    env_file: .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - HCA_CLIENT_ID=${HCA_CLIENT_ID}
+      - HCA_CLIENT_SECRET=${HCA_CLIENT_SECRET}
+      - HCA_REDIRECT_URI=${HCA_REDIRECT_URI}
+      - PUBLIC_URL=${PUBLIC_URL}
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
     volumes:
       - data:/app/data
 
