@@ -8,6 +8,7 @@ declare namespace App {
       email: string;
       avatarUrl: string | null;
       isAllowed: boolean;
+      slackId: string | null;
     } | null;
   }
 }

@@ -10,6 +10,7 @@ export interface SessionUser {
   email: string;
   avatarUrl: string | null;
   isAllowed: boolean;
+  slackId: string | null;
 }
 
 export async function createSession(user: SessionUser): Promise<string> {
@@ -29,6 +30,7 @@ export async function verifySession(token: string): Promise<SessionUser | null> 
       email: payload.email as string,
       avatarUrl: (payload.avatarUrl as string) || null,
       isAllowed: payload.isAllowed as boolean,
+      slackId: (payload.slackId as string) || null,
     };
   } catch {
     return null;

@@ -99,6 +99,7 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
     email,
     avatarUrl,
     isAllowed,
+    slackId,
   });
 
   cookies.set('session', session, {
