@@ -14,6 +14,7 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
     return redirect('/auth/login');
   }
 
+  const isAdmin = locals.user.slackId === import.meta.env.ADMIN_ID;
   const data = await request.formData();
   const method = data.get('_method') as string;
 
@@ -21,7 +22,7 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
     const id = data.get('id') as string;
     const form = await db.select().from(forms).where(eq(forms.id, id)).get();
 
-    if (!form || form.creatorId !== locals.user.id) {
+    if (!form || (form.creatorId !== locals.user.id && !isAdmin)) {
       return new Response('Not found', { status: 404 });
     }
 
@@ -44,7 +45,7 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
     const id = data.get('id') as string;
     const form = await db.select().from(forms).where(eq(forms.id, id)).get();
 
-    if (!form || form.creatorId !== locals.user.id) {
+    if (!form || (form.creatorId !== locals.user.id && !isAdmin)) {
       return new Response('Not found', { status: 404 });
     }
 

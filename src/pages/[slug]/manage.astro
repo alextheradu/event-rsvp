@@ -13,7 +13,9 @@ if (!user) {
 
 const form = await db.select().from(forms).where(eq(forms.slug, slug!)).get();
 
-if (!form || form.creatorId !== user.id) {
+const isAdmin = user.slackId === import.meta.env.ADMIN_ID;
+
+if (!form || (form.creatorId !== user.id && !isAdmin)) {
   return new Response('Not found', { status: 404 });
 }
 
