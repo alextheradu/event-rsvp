@@ -1,6 +1,6 @@
 # RSVP
 
-RSVP for YSWSes! See https://rsvp.hackclub.community (awaiting [hackclub/dns](https://github.com/hackclub/dns/pull/2566)).
+RSVP for YSWSes! See https://rsvp.hackclub.community.
 
 ## Dev
 
