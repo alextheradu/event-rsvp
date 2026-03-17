@@ -9,6 +9,7 @@ services:
       - HCA_REDIRECT_URI=${HCA_REDIRECT_URI}
       - PUBLIC_URL=${PUBLIC_URL}
       - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
+      - SLACK_APP_TOKEN=${SLACK_APP_TOKEN}
       - ADMIN_ID=${ADMIN_ID}
     volumes:
       - data:/app/data

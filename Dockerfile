@@ -14,4 +14,4 @@ COPY --from=build /app/scripts ./scripts
 ENV HOST=0.0.0.0
 ENV PORT=4321
 VOLUME ["/app/data"]
-CMD ["sh", "-c", "bun scripts/migrate.ts && bun run dist/server/entry.mjs"]
+CMD ["sh", "-c", "bun scripts/migrate.ts && bun scripts/slack-bot.ts & bun run dist/server/entry.mjs"]
