@@ -32,6 +32,8 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
       return redirect(`/${form.slug}/manage?error=Invalid Slack channel ID`);
     }
     const slackChannelId = slackChannelIdRaw;
+    const websiteRaw = (data.get('website') as string)?.trim() || null;
+    const website = websiteRaw;
 
     await db
       .update(forms)
@@ -40,6 +42,7 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
         isPublic: data.has('isPublic'),
         feedbackEnabled: data.has('feedbackEnabled'),
         slackChannelId,
+        website,
       })
       .where(eq(forms.id, id));
 
@@ -78,6 +81,7 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
   const description = (data.get('description') as string)?.trim() || null;
   const feedbackEnabled = data.has('feedbackEnabled');
   const slackChannelId = (data.get('slackChannelId') as string)?.trim() || null;
+  const website = (data.get('website') as string)?.trim() || null;
 
   if (slackChannelId && !SLACK_CHANNEL_RE.test(slackChannelId)) {
     return redirect('/new?error=Invalid Slack channel ID');
@@ -108,6 +112,7 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
     creatorId: locals.user.id,
     feedbackEnabled,
     slackChannelId,
+    website,
   });
 
   return redirect(`/${slug}/manage`);

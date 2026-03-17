@@ -21,6 +21,7 @@ export const forms = sqliteTable('forms', {
   isPublic: integer('is_public', { mode: 'boolean' }).notNull().default(true),
   feedbackEnabled: integer('feedback_enabled', { mode: 'boolean' }).notNull().default(false),
   slackChannelId: text('slack_channel_id'),
+  website: text('website'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 });
 

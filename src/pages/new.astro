@@ -92,6 +92,21 @@ const error = Astro.url.searchParams.get('error');
       </div>
 
       <div class="space-y-1.5">
+        <label for="website" class="block text-sm font-medium text-zinc-300">
+          Website <span class="text-zinc-600">(optional)</span>
+        </label>
+        <input
+          type="url"
+          id="website"
+          name="website"
+          disabled={!canCreate}
+          class="w-full bg-zinc-900/50 border border-zinc-800/60 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all disabled:opacity-50"
+          placeholder="https://example.com"
+        />
+        <p class="text-xs text-zinc-600">A link shown on the RSVP page.</p>
+      </div>
+
+      <div class="space-y-1.5">
         <label for="slackChannelId" class="block text-sm font-medium text-zinc-300">
           Slack channel ID <span class="text-zinc-600">(optional)</span>
         </label>

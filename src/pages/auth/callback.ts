@@ -52,7 +52,7 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
 
   const hcaId = String(identity.id);
   const slackId = identity.slack_id || null;
-  const isAllowed = import.meta.env.DEV || Boolean(identity.ysws_eligible);
+  const yswsEligible = import.meta.env.DEV || Boolean(identity.ysws_eligible);
 
   let name = '';
   let email = '';
@@ -73,14 +73,18 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
     .get();
 
   let userId: string;
+  let isAllowed: boolean;
 
   if (existingUser) {
+    // Preserve admin-set isAllowed; only update profile fields
+    isAllowed = existingUser.isAllowed;
     await db
       .update(users)
-      .set({ name, email, avatarUrl, slackId, isAllowed })
+      .set({ name, email, avatarUrl, slackId })
       .where(eq(users.id, existingUser.id));
     userId = existingUser.id;
   } else {
+    isAllowed = yswsEligible;
     userId = crypto.randomUUID();
     await db.insert(users).values({
       id: userId,
