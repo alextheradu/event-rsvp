@@ -10,7 +10,8 @@ WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/drizzle ./drizzle
+COPY --from=build /app/scripts ./scripts
 ENV HOST=0.0.0.0
 ENV PORT=4321
 VOLUME ["/app/data"]
-CMD ["bun", "run", "dist/server/entry.mjs"]
+CMD ["sh", "-c", "bun scripts/migrate.ts && bun run dist/server/entry.mjs"]
