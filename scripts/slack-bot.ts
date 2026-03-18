@@ -168,6 +168,11 @@ app.action("rsvp_open", async ({ ack, body, client }) => {
 		return;
 	}
 
+	if (form.creator_id === user.id) {
+		await ephemeral("You can't RSVP to your own event.");
+		return;
+	}
+
 	if (getExistingRsvp.get(form.id, user.id)) {
 		await ephemeral(`You're already RSVP'd for *${form.title}*!`);
 		return;
