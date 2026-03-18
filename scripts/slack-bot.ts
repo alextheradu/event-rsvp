@@ -1,5 +1,5 @@
 import { App } from "@slack/bolt";
-// @ts-ignore
+// @ts-expect-error
 import { Database } from "bun:sqlite";
 
 if (!process.env.SLACK_BOT_TOKEN || !process.env.SLACK_APP_TOKEN) {
@@ -19,10 +19,11 @@ const getForm = sqlite.prepare<
     is_open: number;
     description: string | null;
     slack_channel_id: string | null;
+    creator_id: string;
   },
   [string]
 >(
-  "SELECT id, title, slug, is_open, description, slack_channel_id FROM forms WHERE slug = ?",
+  "SELECT id, title, slug, is_open, description, slack_channel_id, creator_id FROM forms WHERE slug = ?",
 );
 
 const getUserBySlackId = sqlite.prepare<
@@ -34,9 +35,45 @@ const getExistingRsvp = sqlite.prepare<{ id: string }, [string, string]>(
   "SELECT id FROM rsvps WHERE form_id = ? AND user_id = ?",
 );
 
+const insertUser = sqlite.prepare(
+  "INSERT INTO users (id, hackclub_id, name, email, avatar_url, slack_id, is_allowed, created_at) VALUES (?, ?, ?, ?, ?, ?, 1, ?)",
+);
+
 const insertRsvp = sqlite.prepare(
   "INSERT INTO rsvps (id, form_id, user_id, created_at) VALUES (?, ?, ?, ?)",
 );
+
+async function resolveUser(
+  slackUserId: string,
+  client: App["client"],
+): Promise<{ id: string; is_allowed: number } | null> {
+  const existing = getUserBySlackId.get(slackUserId);
+  if (existing) return existing;
+
+  // dey not in da db
+  const check = await fetch(
+    `https://identity.hackclub.com/api/external/check?slack_id=${slackUserId}`,
+  )
+    .then((r) => r.json())
+    .catch(() => null);
+
+  if (check?.result !== "verified_eligible") return null;
+
+  // profile from slakc
+  const info = await client.users.info({ user: slackUserId }).catch(() => null);
+  const profile = (info as any)?.user?.profile;
+  const name: string =
+    profile?.display_name || profile?.real_name || slackUserId;
+  const avatarUrl: string | null =
+    profile?.image_192 || profile?.image_72 || null;
+  const hackclubId: string = String(check.id ?? `slack_${slackUserId}`); // TEMPORARY id!! gets overwritten if logged in since we lookup by slack id
+
+  const userId = crypto.randomUUID();
+  const now = Math.floor(Date.now() / 1000);
+  insertUser.run(userId, hackclubId, name, "", avatarUrl, slackUserId, now);
+
+  return { id: userId, is_allowed: 1 };
+}
 
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
@@ -44,10 +81,14 @@ const app = new App({
   socketMode: true,
 });
 
-const publicUrl = (
-  process.env.PUBLIC_URL || "https://rsvp.hackclub.community"
-).replace(/\/$/, "");
-// const publicUrl = "https://rsvp.hackclub.community".replace(/\/$/, "");
+let publicUrl: string;
+if (process.env.DEV) {
+  publicUrl = "https://rsvp.hackclub.community".replace(/\/$/, "");
+} else {
+  publicUrl = (
+    process.env.PUBLIC_URL || "https://rsvp.hackclub.community"
+  ).replace(/\/$/, "");
+}
 const escapedUrl = publicUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const linkRegex = new RegExp(`^${escapedUrl}/([\\w-]+)$`);
 
@@ -111,9 +152,9 @@ app.action("rsvp_open", async ({ ack, body, client }) => {
   const ephemeral = (text: string) =>
     client.chat.postEphemeral({ channel: channelId, user: slackUserId, text });
 
-  const user = getUserBySlackId.get(slackUserId);
+  const user = await resolveUser(slackUserId, client);
   if (!user) {
-    await ephemeral(`You'll need to sign in first: ${publicUrl}`);
+    await ephemeral("You're not currently eligible to RSVP for events.");
     return;
   }
   if (!user.is_allowed) {

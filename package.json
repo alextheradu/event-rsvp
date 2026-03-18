@@ -8,6 +8,8 @@
     "preview": "bunx --bun astro preview",
     "astro": "bunx --bun astro",
     "bot": "bun scripts/slack-bot.ts",
+    "check": "biome check .",
+    "format": "biome format --write .",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push"
   },
@@ -21,6 +23,7 @@
     "tailwindcss": "^4.2.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.7",
     "drizzle-kit": "^0.31.9"
   }
 }
