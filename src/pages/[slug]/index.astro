@@ -1,8 +1,8 @@
 ---
-import Base from '../../layouts/Base.astro';
-import { db } from '../../lib/db';
-import { forms, rsvps, feedback } from '../../lib/schema';
-import { eq, and } from 'drizzle-orm';
+import { and, eq } from "drizzle-orm";
+import Base from "../../layouts/Base.astro";
+import { db } from "../../lib/db";
+import { feedback, forms, rsvps } from "../../lib/schema";
 
 const { slug } = Astro.params;
 const user = Astro.locals.user;
@@ -10,31 +10,33 @@ const user = Astro.locals.user;
 const form = await db.select().from(forms).where(eq(forms.slug, slug!)).get();
 
 if (!form) {
-  return new Response('Not found', { status: 404 });
+	return new Response("Not found", { status: 404 });
 }
 
 if (!form.isPublic && (!user || form.creatorId !== user.id)) {
-  return new Response('Not found', { status: 404 });
+	return new Response("Not found", { status: 404 });
 }
 
 const userRsvp = user
-  ? await db
-      .select()
-      .from(rsvps)
-      .where(and(eq(rsvps.formId, form.id), eq(rsvps.userId, user.id)))
-      .get()
-  : null;
+	? await db
+			.select()
+			.from(rsvps)
+			.where(and(eq(rsvps.formId, form.id), eq(rsvps.userId, user.id)))
+			.get()
+	: null;
 
 const userFeedback = user
-  ? await db
-      .select()
-      .from(feedback)
-      .where(and(eq(feedback.formId, form.id), eq(feedback.userId, user.id)))
-      .get()
-  : null;
+	? await db
+			.select()
+			.from(feedback)
+			.where(and(eq(feedback.formId, form.id), eq(feedback.userId, user.id)))
+			.get()
+	: null;
 
 const eligible = !user || import.meta.env.DEV || user.isAllowed;
-const isManager = user && (user.id === form.creatorId || user.slackId === import.meta.env.ADMIN_ID);
+const isManager =
+	user &&
+	(user.id === form.creatorId || user.slackId === import.meta.env.ADMIN_ID);
 ---
 
 <Base

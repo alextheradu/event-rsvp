@@ -1,16 +1,21 @@
 ---
-import Nav from '../components/Nav.astro';
-import '../styles/global.css';
+import Nav from "../components/Nav.astro";
+import "../styles/global.css";
 
 interface Props {
-  title?: string;
-  description?: string;
-  ogImage?: string;
-  minimal?: boolean;
+	title?: string;
+	description?: string;
+	ogImage?: string;
+	minimal?: boolean;
 }
 
-const { title = 'RSVP', description = 'Quick RSVPs for YSWSes', ogImage, minimal = false } = Astro.props;
-const siteUrl = import.meta.env.PUBLIC_URL || 'http://localhost:4321';
+const {
+	title = "RSVP",
+	description = "Quick RSVPs for YSWSes",
+	ogImage,
+	minimal = false,
+} = Astro.props;
+const siteUrl = import.meta.env.PUBLIC_URL || "http://localhost:4321";
 const canonicalUrl = new URL(Astro.url.pathname, siteUrl).href;
 ---
 

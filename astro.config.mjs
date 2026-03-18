@@ -1,16 +1,17 @@
 // @ts-check
-import { defineConfig } from 'astro/config';
-import tailwindcss from '@tailwindcss/vite';
-import node from '@astrojs/node';
+
+import node from "@astrojs/node";
+import tailwindcss from "@tailwindcss/vite";
+import { defineConfig } from "astro/config";
 
 export default defineConfig({
-  output: 'server',
-  adapter: node({ mode: 'standalone' }),
-  security: { checkOrigin: false },
-  vite: {
-    plugins: [tailwindcss()],
-    ssr: {
-      external: ['bun:sqlite'],
-    },
-  },
+	output: "server",
+	adapter: node({ mode: "standalone" }),
+	security: { checkOrigin: false },
+	vite: {
+		plugins: [tailwindcss()],
+		ssr: {
+			external: ["bun:sqlite"],
+		},
+	},
 });

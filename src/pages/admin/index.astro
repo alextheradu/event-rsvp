@@ -1,32 +1,32 @@
 ---
-import Base from '../../layouts/Base.astro';
-import { db } from '../../lib/db';
-import { users, forms, rsvps } from '../../lib/schema';
-import { eq, count } from 'drizzle-orm';
+import { count, eq } from "drizzle-orm";
+import Base from "../../layouts/Base.astro";
+import { db } from "../../lib/db";
+import { forms, rsvps, users } from "../../lib/schema";
 
 const user = Astro.locals.user;
 
 if (!user || user.slackId !== import.meta.env.ADMIN_ID) {
-  return new Response('Not found', { status: 404 });
+	return new Response("Not found", { status: 404 });
 }
 
 const allUsers = await db.select().from(users).orderBy(users.createdAt);
 
 const allForms = await db
-  .select({
-    id: forms.id,
-    slug: forms.slug,
-    title: forms.title,
-    isOpen: forms.isOpen,
-    createdAt: forms.createdAt,
-    creatorName: users.name,
-    rsvpCount: count(rsvps.id),
-  })
-  .from(forms)
-  .leftJoin(users, eq(forms.creatorId, users.id))
-  .leftJoin(rsvps, eq(forms.id, rsvps.formId))
-  .groupBy(forms.id)
-  .orderBy(forms.createdAt);
+	.select({
+		id: forms.id,
+		slug: forms.slug,
+		title: forms.title,
+		isOpen: forms.isOpen,
+		createdAt: forms.createdAt,
+		creatorName: users.name,
+		rsvpCount: count(rsvps.id),
+	})
+	.from(forms)
+	.leftJoin(users, eq(forms.creatorId, users.id))
+	.leftJoin(rsvps, eq(forms.id, rsvps.formId))
+	.groupBy(forms.id)
+	.orderBy(forms.createdAt);
 ---
 
 <Base title="Admin">

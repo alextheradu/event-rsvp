@@ -1,22 +1,27 @@
 ---
-import Base from '../layouts/Base.astro';
-import { db } from '../lib/db';
-import { forms } from '../lib/schema';
-import { eq, count } from 'drizzle-orm';
+import { count, eq } from "drizzle-orm";
+import Base from "../layouts/Base.astro";
+import { db } from "../lib/db";
+import { forms } from "../lib/schema";
 
 const user = Astro.locals.user;
 if (!user) {
-  return Astro.redirect('/auth/login?return=/new');
+	return Astro.redirect("/auth/login?return=/new");
 }
 
 const MAX_FORMS = 3;
 const eligible = import.meta.env.DEV || user.isAllowed;
-const formCount = (
-  await db.select({ value: count() }).from(forms).where(eq(forms.creatorId, user.id)).get()
-)?.value ?? 0;
+const formCount =
+	(
+		await db
+			.select({ value: count() })
+			.from(forms)
+			.where(eq(forms.creatorId, user.id))
+			.get()
+	)?.value ?? 0;
 const canCreate = eligible && formCount < MAX_FORMS;
 
-const error = Astro.url.searchParams.get('error');
+const error = Astro.url.searchParams.get("error");
 ---
 
 <Base title="New Form - RSVP">

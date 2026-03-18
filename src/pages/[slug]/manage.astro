@@ -1,14 +1,19 @@
 ---
-import Base from '../../layouts/Base.astro';
-import { db } from '../../lib/db';
-import { forms, rsvps, users, feedback as feedbackTable } from '../../lib/schema';
-import { eq } from 'drizzle-orm';
+import { eq } from "drizzle-orm";
+import Base from "../../layouts/Base.astro";
+import { db } from "../../lib/db";
+import {
+	feedback as feedbackTable,
+	forms,
+	rsvps,
+	users,
+} from "../../lib/schema";
 
 const { slug } = Astro.params;
 const user = Astro.locals.user;
 
 if (!user) {
-  return Astro.redirect(`/auth/login?return=/${slug}/manage`);
+	return Astro.redirect(`/auth/login?return=/${slug}/manage`);
 }
 
 const form = await db.select().from(forms).where(eq(forms.slug, slug!)).get();
@@ -16,37 +21,37 @@ const form = await db.select().from(forms).where(eq(forms.slug, slug!)).get();
 const isAdmin = user.slackId === import.meta.env.ADMIN_ID;
 
 if (!form || (form.creatorId !== user.id && !isAdmin)) {
-  return new Response('Not found', { status: 404 });
+	return new Response("Not found", { status: 404 });
 }
 
 const rsvpList = await db
-  .select({
-    name: users.name,
-    avatarUrl: users.avatarUrl,
-    rsvpDate: rsvps.createdAt,
-  })
-  .from(rsvps)
-  .innerJoin(users, eq(rsvps.userId, users.id))
-  .where(eq(rsvps.formId, form.id))
-  .orderBy(rsvps.createdAt);
+	.select({
+		name: users.name,
+		avatarUrl: users.avatarUrl,
+		rsvpDate: rsvps.createdAt,
+	})
+	.from(rsvps)
+	.innerJoin(users, eq(rsvps.userId, users.id))
+	.where(eq(rsvps.formId, form.id))
+	.orderBy(rsvps.createdAt);
 
 const feedbackList = form.feedbackEnabled
-  ? await db
-      .select({
-        id: feedbackTable.id,
-        content: feedbackTable.content,
-        name: users.name,
-        avatarUrl: users.avatarUrl,
-        createdAt: feedbackTable.createdAt,
-      })
-      .from(feedbackTable)
-      .innerJoin(users, eq(feedbackTable.userId, users.id))
-      .where(eq(feedbackTable.formId, form.id))
-      .orderBy(feedbackTable.createdAt)
-  : [];
+	? await db
+			.select({
+				id: feedbackTable.id,
+				content: feedbackTable.content,
+				name: users.name,
+				avatarUrl: users.avatarUrl,
+				createdAt: feedbackTable.createdAt,
+			})
+			.from(feedbackTable)
+			.innerJoin(users, eq(feedbackTable.userId, users.id))
+			.where(eq(feedbackTable.formId, form.id))
+			.orderBy(feedbackTable.createdAt)
+	: [];
 
 const total = rsvpList.length;
-const siteUrl = import.meta.env.PUBLIC_URL || 'http://localhost:4321';
+const siteUrl = import.meta.env.PUBLIC_URL || "http://localhost:4321";
 ---
 
 <Base title={`Manage - ${form.title}`}>

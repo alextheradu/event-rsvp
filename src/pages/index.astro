@@ -1,29 +1,32 @@
 ---
-import Base from '../layouts/Base.astro';
-import { db } from '../lib/db';
-import { forms, rsvps } from '../lib/schema';
-import { eq, desc } from 'drizzle-orm';
+import { desc, eq } from "drizzle-orm";
+import Base from "../layouts/Base.astro";
+import { db } from "../lib/db";
+import { forms, rsvps } from "../lib/schema";
 
 const user = Astro.locals.user;
 
 let myForms: (typeof forms.$inferSelect)[] = [];
-let myRsvps: { rsvp: typeof rsvps.$inferSelect; form: typeof forms.$inferSelect }[] = [];
+let myRsvps: {
+	rsvp: typeof rsvps.$inferSelect;
+	form: typeof forms.$inferSelect;
+}[] = [];
 
 if (user) {
-  myForms = await db
-    .select()
-    .from(forms)
-    .where(eq(forms.creatorId, user.id))
-    .orderBy(desc(forms.createdAt));
+	myForms = await db
+		.select()
+		.from(forms)
+		.where(eq(forms.creatorId, user.id))
+		.orderBy(desc(forms.createdAt));
 
-  const rsvpRows = await db
-    .select()
-    .from(rsvps)
-    .innerJoin(forms, eq(rsvps.formId, forms.id))
-    .where(eq(rsvps.userId, user.id))
-    .orderBy(desc(rsvps.createdAt));
+	const rsvpRows = await db
+		.select()
+		.from(rsvps)
+		.innerJoin(forms, eq(rsvps.formId, forms.id))
+		.where(eq(rsvps.userId, user.id))
+		.orderBy(desc(rsvps.createdAt));
 
-  myRsvps = rsvpRows.map((r) => ({ rsvp: r.rsvps, form: r.forms }));
+	myRsvps = rsvpRows.map((r) => ({ rsvp: r.rsvps, form: r.forms }));
 }
 ---
 

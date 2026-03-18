@@ -1,17 +1,17 @@
-import { Database } from 'bun:sqlite';
-import { drizzle } from 'drizzle-orm/bun-sqlite';
-import { migrate } from 'drizzle-orm/bun-sqlite/migrator';
-import { resolve } from 'path';
+import { Database } from "bun:sqlite";
+import { drizzle } from "drizzle-orm/bun-sqlite";
+import { migrate } from "drizzle-orm/bun-sqlite/migrator";
+import { resolve } from "path";
 
-const dbPath = process.env.DATABASE_URL || './data/rsvp.db';
-const migrationsFolder = resolve(import.meta.dir, '../drizzle');
+const dbPath = process.env.DATABASE_URL || "./data/rsvp.db";
+const migrationsFolder = resolve(import.meta.dir, "../drizzle");
 
 const sqlite = new Database(dbPath);
-sqlite.exec('PRAGMA journal_mode=WAL');
-sqlite.exec('PRAGMA foreign_keys=ON');
+sqlite.exec("PRAGMA journal_mode=WAL");
+sqlite.exec("PRAGMA foreign_keys=ON");
 
 const db = drizzle(sqlite);
 migrate(db, { migrationsFolder });
 
 sqlite.close();
-console.log('Migrations applied.');
+console.log("Migrations applied.");

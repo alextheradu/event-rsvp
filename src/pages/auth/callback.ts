@@ -1,9 +1,9 @@
 import type { APIRoute } from "astro";
+import { eq } from "drizzle-orm";
 import { db } from "../../lib/db";
-import { users, forms, rsvps } from "../../lib/schema";
+import { forms, rsvps, users } from "../../lib/schema";
 import { createSession } from "../../lib/session";
 import { getSlackUser, inviteToChannel } from "../../lib/slack";
-import { eq } from "drizzle-orm";
 
 export const GET: APIRoute = async ({ url, cookies, redirect }) => {
   const code = url.searchParams.get("code");
@@ -56,7 +56,7 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
   const yswsEligible = import.meta.env.DEV || Boolean(identity.ysws_eligible);
 
   let name = "";
-  let email = "";
+  const email = "";
   let avatarUrl: string | null = null;
 
   if (slackId) {
@@ -124,7 +124,7 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
       .where(eq(forms.slug, slug))
       .get();
 
-    if (form && form.isOpen && isAllowed) {
+    if (form?.isOpen && isAllowed) {
       try {
         await db.insert(rsvps).values({
           id: crypto.randomUUID(),
