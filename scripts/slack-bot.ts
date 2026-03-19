@@ -94,10 +94,12 @@ if (publicUrls.length === 0) {
 	throw new Error("PUBLIC_URL must contain at least one valid URL");
 }
 
-const escapedUrls = publicUrls.map((u) =>
-	u.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+const escapedHosts = publicUrls.map((u) =>
+	u.replace(/^https?:\/\//, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
 );
-const linkRegex = new RegExp(`^(?:${escapedUrls.join("|")})/([\\w-]+)$`);
+const linkRegex = new RegExp(
+	`^https?://(?:${escapedHosts.join("|")})/([\\w-]+)$`,
+);
 
 app.event("link_shared", async ({ event, client }) => {
 	const unfurls: Record<string, object> = {};
