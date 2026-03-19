@@ -42,6 +42,7 @@ export async function inviteToChannel(
 	channelId: string,
 	slackId: string,
 ): Promise<boolean> {
+	await slackApi("conversations.join", { channel: channelId });
 	const data = await slackApi("conversations.invite", {
 		channel: channelId,
 		users: slackId,
