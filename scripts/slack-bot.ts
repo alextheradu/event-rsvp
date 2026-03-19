@@ -194,7 +194,13 @@ app.action("rsvp_open", async ({ ack, body, client }) => {
 		Math.floor(Date.now() / 1000),
 	);
 
-	if (form.slack_channel_id) {
+	const b = (await client.auth.test()).bot_id;
+	if (form.slack_channel_id && b) {
+		await client.conversations.join({
+			channel: form.slack_channel_id,
+			// @ts-ignore
+			users: b,
+		});
 		await client.conversations
 			.invite({ channel: form.slack_channel_id, users: slackUserId })
 			.catch(() => {});
