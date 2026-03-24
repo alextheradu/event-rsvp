@@ -194,8 +194,22 @@ app.action("rsvp_open", async ({ ack, body, client }) => {
 		Math.floor(Date.now() / 1000),
 	);
 
+	const dmChannel = await client.conversations
+		.open({ users: slackUserId })
+		.catch(() => null);
+	if (dmChannel?.channel?.id) {
+		await client.chat
+			.postMessage({
+				channel: dmChannel.channel.id,
+				text: `You're RSVPed for ${form.title}! To submit feedback or cancel your RSVP, visit https://rsvp.soon.it.`,
+			})
+			.catch(() => {});
+	}
+
 	if (form.slack_channel_id) {
-		await client.conversations.join({ channel: form.slack_channel_id }).catch(() => {});
+		await client.conversations
+			.join({ channel: form.slack_channel_id })
+			.catch(() => {});
 		await client.conversations
 			.invite({ channel: form.slack_channel_id, users: slackUserId })
 			.catch(() => {});

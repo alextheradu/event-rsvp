@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 import { and, eq } from "drizzle-orm";
 import { db } from "../../lib/db";
 import { feedback, forms, rsvps, users } from "../../lib/schema";
-import { inviteToChannel } from "../../lib/slack";
+import { dmUser, inviteToChannel } from "../../lib/slack";
 
 export const POST: APIRoute = async ({ request, locals, redirect }) => {
 	if (!locals.user) {
@@ -31,6 +31,9 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
 		await db
 			.delete(rsvps)
 			.where(and(eq(rsvps.formId, formId), eq(rsvps.userId, locals.user.id)));
+		if (locals.user.slackId) {
+			await dmUser(locals.user.slackId, `You're no longer RSVPed for ${form.title}.`);
+		}
 	} else {
 		if (form.creatorId === locals.user.id) {
 			return new Response("Cannot RSVP to your own event", { status: 403 });
@@ -55,6 +58,7 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
 					.where(eq(users.id, locals.user.id))
 					.get();
 				if (user?.slackId) {
+					await dmUser(user.slackId, `You're RSVPed for ${form.title}!`);
 					await inviteToChannel(form.slackChannelId, user.slackId);
 				}
 			}

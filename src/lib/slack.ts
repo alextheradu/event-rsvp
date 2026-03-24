@@ -49,3 +49,21 @@ export async function inviteToChannel(
 	});
 	return data !== null;
 }
+
+export async function dmUser(
+	slackId: string,
+	message: string,
+): Promise<boolean> {
+	const { channel } = await slackApi("conversations.open", { users: slackId });
+	console.log(channel);
+	if (!channel?.id) {
+		return false;
+	}
+	const data = await slackApi("chat.postMessage", {
+		channel: channel.id,
+		text: message,
+	});
+	console.log(data);
+
+	return data !== null;
+}
