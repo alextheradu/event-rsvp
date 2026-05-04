@@ -1,6 +1,6 @@
 # RSVP
 
-One-click RSVPs for YSWSes! See https://rsvp.hackclub.community or https://rsvp.soon.it.
+One-click RSVPs for YSWSes! This currently has over 300 users, with some events seeing as high as 80 verified RSVPs! Join them now: https://rsvp.hackclub.community or https://rsvp.soon.it.
 
 Form customizations automatically appear in Slack when posting a link, along with an inline button to RSVP without leaving Slack. Users signing up are automatically validated to be YSWS eligible. 
 
