@@ -22,3 +22,8 @@ docker compose up -d
 ## Contributing
 
 PRs are welcome! Please message on Slack first if it's a non-trivial change.
+
+
+## AI Usage
+
+This project contains significant AI usage with interface design and bugfixing.
