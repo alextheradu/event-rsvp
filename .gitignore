@@ -27,3 +27,5 @@ data/
 
 # misc
 docs
+# typescript incremental build info
+tsconfig.tsbuildinfo
