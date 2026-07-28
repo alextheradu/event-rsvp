@@ -11,7 +11,8 @@
 			"!**/.next",
 			"!**/node_modules",
 			"!**/drizzle",
-			"!**/legacy"
+			"!**/legacy",
+			"!**/.vscode"
 		]
 	},
 	"formatter": {

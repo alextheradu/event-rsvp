@@ -1,5 +1,8 @@
 import { jwtVerify, SignJWT } from "jose";
 
+export const SESSION_COOKIE = "session";
+export const SESSION_MAX_AGE = 60 * 60 * 24 * 7;
+
 const secret = new TextEncoder().encode(
 	process.env.SESSION_SECRET || "dev-fallback-secret-change-in-production",
 );
