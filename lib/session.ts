@@ -28,7 +28,11 @@ export async function verifySession(
 	token: string,
 ): Promise<SessionUser | null> {
 	try {
-		const { payload } = await jwtVerify(token, secret);
+		// Pin the algorithm. Without this, a token signed with the same secret using
+		// HS384/HS512 verifies even though we only ever issue HS256.
+		const { payload } = await jwtVerify(token, secret, {
+			algorithms: ["HS256"],
+		});
 		return {
 			id: payload.id as string,
 			name: payload.name as string,

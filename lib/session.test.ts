@@ -25,4 +25,18 @@ describe("session", () => {
 	it("rejects garbage", async () => {
 		expect(await verifySession("not-a-jwt")).toBeNull();
 	});
+
+	it("rejects a token signed with a different HMAC algorithm", async () => {
+		const { SignJWT } = await import("jose");
+		const secret = new TextEncoder().encode(
+			process.env.SESSION_SECRET || "dev-fallback-secret-change-in-production",
+		);
+		const hs512 = await new SignJWT({ ...user })
+			.setProtectedHeader({ alg: "HS512" })
+			.setIssuedAt()
+			.setExpirationTime("7d")
+			.sign(secret);
+
+		expect(await verifySession(hs512)).toBeNull();
+	});
 });
