@@ -1,8 +1,7 @@
 # build output
-dist/
-
-# generated types
-.astro/
+.next/
+out/
+next-env.d.ts
 
 # dependencies
 node_modules/
@@ -25,3 +24,6 @@ pnpm-debug.log*
 
 # sqlite
 data/
+
+# misc
+docs

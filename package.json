@@ -1,29 +1,39 @@
 {
-	"name": "rsvp",
+	"name": "event-rsvp",
+	"version": "0.1.0",
+	"private": true,
 	"type": "module",
-	"version": "0.0.1",
 	"scripts": {
-		"dev": "bunx --bun astro dev",
-		"build": "bunx --bun astro build",
-		"preview": "bunx --bun astro preview",
-		"astro": "bunx --bun astro",
-		"bot": "bun scripts/slack-bot.ts",
+		"dev": "next dev",
+		"build": "next build",
+		"start": "next start",
+		"bot": "tsx worker/slack-bot.ts",
+		"migrate": "tsx scripts/migrate.ts",
+		"test": "vitest run",
 		"check": "biome check .",
-		"fmt": "biome format --write .",
-		"db:generate": "drizzle-kit generate",
-		"db:push": "drizzle-kit push"
+		"fmt": "biome check --write .",
+		"db:generate": "drizzle-kit generate"
 	},
 	"dependencies": {
-		"@astrojs/node": "^10.0.1",
 		"@slack/bolt": "^4.6.0",
-		"@tailwindcss/vite": "^4.2.1",
-		"astro": "^6.0.4",
+		"better-sqlite3": "^11.8.1",
 		"drizzle-orm": "^0.45.1",
 		"jose": "^6.2.1",
-		"tailwindcss": "^4.2.1"
+		"next": "^15.2.0",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.7",
-		"drizzle-kit": "^0.31.9"
+		"@tailwindcss/postcss": "^4.2.1",
+		"@types/better-sqlite3": "^7.6.12",
+		"@types/node": "^22.13.0",
+		"@types/react": "^19.0.0",
+		"@types/react-dom": "^19.0.0",
+		"drizzle-kit": "^0.31.9",
+		"tailwindcss": "^4.2.1",
+		"tsx": "^4.19.0",
+		"typescript": "^5.7.0",
+		"vitest": "^3.0.0"
 	}
 }
