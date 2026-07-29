@@ -90,18 +90,27 @@ export async function createForm(
 		return { ok: false, error: "That URL is already taken" };
 	}
 
-	db.insert(forms)
-		.values({
-			id: crypto.randomUUID(),
-			slug,
-			title,
-			description: input.description,
-			website: input.website,
-			slackChannelId: input.slackChannelId,
-			feedbackEnabled: input.feedbackEnabled,
-			creatorId,
-		})
-		.run();
+	try {
+		db.insert(forms)
+			.values({
+				id: crypto.randomUUID(),
+				slug,
+				title,
+				description: input.description,
+				website: input.website,
+				slackChannelId: input.slackChannelId,
+				feedbackEnabled: input.feedbackEnabled,
+				creatorId,
+			})
+			.run();
+	} catch (err) {
+		// The pre-check above handles the common case; this catches the race where
+		// another request inserted the same slug in between.
+		if (String(err).includes("UNIQUE constraint failed: forms.slug")) {
+			return { ok: false, error: "That URL is already taken" };
+		}
+		throw err;
+	}
 
 	return { ok: true, slug };
 }

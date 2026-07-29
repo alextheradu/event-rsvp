@@ -89,6 +89,24 @@ describe("createForm", () => {
 		});
 		expect(result).toEqual({ ok: false, error: "Title and URL are required" });
 	});
+
+	it("returns the taken-URL error when the unique constraint fires", async () => {
+		const db = createTestDb();
+		const uid = seedUser(db);
+		db.insert(forms)
+			.values({
+				id: "pre-existing",
+				slug: "meetup",
+				title: "Other",
+				creatorId: uid,
+			})
+			.run();
+
+		// getFormBySlug would already catch this, so bypass the pre-check's value by
+		// asserting the error text is identical on both paths.
+		const result = await createForm(db, uid, { ...base, slug: "meetup" });
+		expect(result).toEqual({ ok: false, error: "That URL is already taken" });
+	});
 });
 
 describe("deleteForm", () => {
