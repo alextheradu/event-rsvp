@@ -37,9 +37,8 @@ describe("slack client", () => {
 		const postCall = fetchImpl.mock.calls.find((c) =>
 			String(c[0]).endsWith("chat.postMessage"),
 		);
-		if (postCall) {
-			expect(String((postCall[1] as RequestInit).body)).toContain("channel=D1");
-		}
+		expect(postCall).toBeDefined();
+		expect(String((postCall?.[1] as RequestInit).body)).toContain("channel=D1");
 	});
 
 	it("joins a channel before inviting", async () => {
