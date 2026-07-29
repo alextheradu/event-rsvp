@@ -85,12 +85,19 @@ export async function cancelRsvp(
 	const form = getFormById(db, formId);
 	if (!form) return { ok: false };
 
+	// Only notify if there was actually something to cancel. Without this check a
+	// double-click, a stale tab, or a direct POST DMs "you're no longer RSVPed" to
+	// someone who never RSVP'd — noise that teaches people to distrust the bot.
+	const had = hasRsvp(db, userId, formId);
+
 	db.delete(feedback)
 		.where(and(eq(feedback.formId, formId), eq(feedback.userId, userId)))
 		.run();
 	db.delete(rsvps)
 		.where(and(eq(rsvps.formId, formId), eq(rsvps.userId, userId)))
 		.run();
+
+	if (!had) return { ok: true };
 
 	const user = db.select().from(users).where(eq(users.id, userId)).get();
 	const slackId = user?.slackId;

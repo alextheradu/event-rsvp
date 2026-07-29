@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Deps } from "./rsvp";
 import { cancelRsvp, countRsvps, createRsvp, hasRsvp } from "./rsvp";
-import { feedback, forms, rsvps, users } from "./schema";
+import { feedback, forms, users } from "./schema";
 import { createTestDb } from "./test-db";
 
 function setup(opts: { allowIneligible?: boolean } = {}) {
@@ -175,5 +175,21 @@ describe("cancelRsvp", () => {
 	it("is a no-op for an unknown form", async () => {
 		const { deps } = setup();
 		expect(await cancelRsvp(deps, "guest", "nope")).toEqual({ ok: false });
+	});
+
+	it("does not DM when there was no RSVP to cancel", async () => {
+		const { deps, slack } = setup();
+		const result = await cancelRsvp(deps, "guest", "f1");
+		expect(result).toEqual({ ok: true });
+		expect(slack.dm).not.toHaveBeenCalled();
+	});
+
+	it("does not DM twice when cancel is clicked twice", async () => {
+		const { deps, slack } = setup();
+		await createRsvp(deps, "guest", "f1");
+		await cancelRsvp(deps, "guest", "f1");
+		expect(slack.dm).toHaveBeenCalledTimes(2); // one on RSVP, one on cancel
+		await cancelRsvp(deps, "guest", "f1");
+		expect(slack.dm).toHaveBeenCalledTimes(2);
 	});
 });
