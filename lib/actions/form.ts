@@ -1,5 +1,6 @@
 "use server";
 
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSession, isAdmin } from "../auth";
@@ -11,6 +12,7 @@ import {
 	SLACK_CHANNEL_RE,
 	updateForm,
 } from "../forms";
+import { users } from "../schema";
 import type { ActionState } from "./feedback";
 
 function str(data: FormData, key: string): string | null {
@@ -25,7 +27,12 @@ export async function createFormAction(
 	const user = await getSession();
 	if (!user) redirect("/auth/login?return=/new");
 
-	if (deps.allowIneligible === false && !user.isAllowed) {
+	// Read eligibility from the database, not the session. The session JWT lives up
+	// to 7 days, so trusting it would let someone an admin just blocked keep creating
+	// forms until it expires. `createRsvp` already reads from the row for the same
+	// reason; this keeps the two consistent.
+	const row = deps.db.select().from(users).where(eq(users.id, user.id)).get();
+	if (!deps.allowIneligible && !row?.isAllowed) {
 		return { error: "Your account is not eligible for YSWS programs" };
 	}
 
@@ -81,7 +88,13 @@ export async function deleteFormAction(id: string): Promise<void> {
 	const form = getFormById(deps.db, id);
 	if (!form || (form.creatorId !== user.id && !isAdmin(user))) return;
 
+	const slug = form.slug;
 	deleteForm(deps.db, id);
+	// Revalidate the deleted form's own routes too, not just the dashboard —
+	// otherwise those paths keep serving cached content for a form that is gone.
 	revalidatePath("/");
+	revalidatePath(`/${slug}`);
+	revalidatePath(`/${slug}/manage`);
+	revalidatePath(`/${slug}/stats`);
 	redirect("/");
 }
