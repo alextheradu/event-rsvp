@@ -53,11 +53,13 @@ export default function EventDetailsFields({
 	const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
 	const [activeIndex, setActiveIndex] = useState(-1);
 	const [locationEdited, setLocationEdited] = useState(false);
+	const [locationFocused, setLocationFocused] = useState(false);
 	const listId = useId();
 
 	useEffect(() => {
 		if (
 			format !== "in_person" ||
+			!locationFocused ||
 			!locationEdited ||
 			location.trim().length < 3
 		) {
@@ -81,7 +83,7 @@ export default function EventDetailsFields({
 			clearTimeout(timer);
 			controller.abort();
 		};
-	}, [format, location, locationEdited]);
+	}, [format, location, locationEdited, locationFocused]);
 
 	return (
 		<fieldset className="space-y-5 border-t border-zinc-800/80 pt-6">
@@ -149,7 +151,16 @@ export default function EventDetailsFields({
 				</select>
 			</label>
 			{format === "in_person" && (
-				<div className="space-y-2 relative">
+				<fieldset
+					className="space-y-2 relative"
+					aria-label="Venue autocomplete"
+					onBlur={(event) => {
+						if (event.currentTarget.contains(event.relatedTarget)) return;
+						setLocationFocused(false);
+						setSuggestions([]);
+						setActiveIndex(-1);
+					}}
+				>
 					<label className="block space-y-1.5 text-sm text-zinc-400">
 						<span>Venue or address</span>
 						<input
@@ -164,6 +175,7 @@ export default function EventDetailsFields({
 							}
 							autoComplete="off"
 							value={location}
+							onFocus={() => setLocationFocused(true)}
 							onChange={(event) => {
 								setLocation(event.target.value);
 								setSelected(null);
@@ -249,7 +261,7 @@ export default function EventDetailsFields({
 					<p className="text-xs leading-relaxed text-zinc-600">
 						Autocomplete is optional—manual addresses work too.
 					</p>
-				</div>
+				</fieldset>
 			)}
 			{format === "online" && (
 				<label className="block space-y-1.5 text-sm text-zinc-400">
