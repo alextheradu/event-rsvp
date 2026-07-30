@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import { deps } from "@/lib/deps";
 import { getFormBySlug } from "@/lib/forms";
+import { OAUTH_REDIRECT_URI } from "@/lib/oauth";
 import { createRsvp } from "@/lib/rsvp";
 import { safeReturnTo } from "@/lib/safe-redirect";
 import { createSession, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session";
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
 			code,
 			client_id: process.env.HCA_CLIENT_ID,
 			client_secret: process.env.HCA_CLIENT_SECRET,
-			redirect_uri: new URL("/oauth/callback", url).toString(),
+			redirect_uri: OAUTH_REDIRECT_URI,
 		}),
 	});
 	if (!tokenRes.ok) return fail("token_exchange");
