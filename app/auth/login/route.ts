@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
-import { OAUTH_REDIRECT_URI } from "@/lib/oauth";
+import { buildOauthRedirectUri } from "@/lib/oauth";
 import { safeReturnTo } from "@/lib/safe-redirect";
 
 export async function GET(request: NextRequest) {
@@ -29,9 +29,10 @@ export async function GET(request: NextRequest) {
 		},
 	);
 
+	const redirectUri = buildOauthRedirectUri(request);
 	const authUrl = new URL("https://auth.hackclub.com/oauth/authorize");
 	authUrl.searchParams.set("client_id", clientId);
-	authUrl.searchParams.set("redirect_uri", OAUTH_REDIRECT_URI);
+	authUrl.searchParams.set("redirect_uri", redirectUri);
 	authUrl.searchParams.set("response_type", "code");
 	authUrl.searchParams.set("scope", "verification_status slack_id");
 	authUrl.searchParams.set("state", state);

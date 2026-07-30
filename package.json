@@ -6,7 +6,7 @@
 	"scripts": {
 		"dev": "next dev",
 		"build": "next build",
-		"start": "next start",
+		"start": "next start -p 4321",
 		"bot": "tsx worker/slack-bot.ts",
 		"migrate": "tsx scripts/migrate.ts",
 		"test": "vitest run",

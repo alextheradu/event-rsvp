@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import { deps } from "@/lib/deps";
 import { getFormBySlug } from "@/lib/forms";
-import { OAUTH_REDIRECT_URI } from "@/lib/oauth";
+import { buildOauthRedirectUri, getPublicOrigin } from "@/lib/oauth";
 import { createRsvp } from "@/lib/rsvp";
 import { safeReturnTo } from "@/lib/safe-redirect";
 import { createSession, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session";
@@ -17,6 +17,7 @@ interface StoredState {
 
 export async function GET(request: NextRequest) {
 	const url = new URL(request.url);
+	const appOrigin = getPublicOrigin(request);
 	const code = url.searchParams.get("code");
 	const state = url.searchParams.get("state");
 	const jar = await cookies();
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
 	jar.delete("oauth_state");
 
 	const fail = (reason: string) =>
-		NextResponse.redirect(new URL(`/?error=${reason}`, url));
+		NextResponse.redirect(new URL(`/?error=${reason}`, `${appOrigin}/`));
 
 	if (!code || !state || !stored || state !== stored.state) {
 		return fail("invalid_state");
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
 			code,
 			client_id: process.env.HCA_CLIENT_ID,
 			client_secret: process.env.HCA_CLIENT_SECRET,
-			redirect_uri: OAUTH_REDIRECT_URI,
+			redirect_uri: buildOauthRedirectUri(request),
 		}),
 	});
 	if (!tokenRes.ok) return fail("token_exchange");
@@ -89,5 +90,5 @@ export async function GET(request: NextRequest) {
 		if (form) await createRsvp(deps, sessionUser.id, form.id);
 	}
 
-	return NextResponse.redirect(new URL(returnTo, url));
+	return NextResponse.redirect(new URL(returnTo, `${appOrigin}/`));
 }
