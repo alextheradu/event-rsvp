@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 	authUrl.searchParams.set("client_id", clientId);
 	authUrl.searchParams.set(
 		"redirect_uri",
-		new URL("/auth/callback", url).toString(),
+		new URL("/oauth/callback", url).toString(),
 	);
 	authUrl.searchParams.set("response_type", "code");
 	authUrl.searchParams.set("scope", "verification_status slack_id");

@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
 			code,
 			client_id: process.env.HCA_CLIENT_ID,
 			client_secret: process.env.HCA_CLIENT_SECRET,
-			redirect_uri: new URL("/auth/callback", url).toString(),
+			redirect_uri: new URL("/oauth/callback", url).toString(),
 		}),
 	});
 	if (!tokenRes.ok) return fail("token_exchange");
