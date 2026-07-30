@@ -1,0 +1,1 @@
+ALTER TABLE `forms` ADD `requires_verification` integer DEFAULT true NOT NULL;

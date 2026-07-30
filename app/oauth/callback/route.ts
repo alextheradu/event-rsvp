@@ -17,7 +17,7 @@ interface StoredState {
 
 export async function GET(request: NextRequest) {
 	const url = new URL(request.url);
-	const appOrigin = getPublicOrigin(request);
+	const appOrigin = getPublicOrigin();
 	const code = url.searchParams.get("code");
 	const state = url.searchParams.get("state");
 	const jar = await cookies();
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
 			code,
 			client_id: process.env.HCA_CLIENT_ID,
 			client_secret: process.env.HCA_CLIENT_SECRET,
-			redirect_uri: buildOauthRedirectUri(request),
+			redirect_uri: buildOauthRedirectUri(),
 		}),
 	});
 	if (!tokenRes.ok) return fail("token_exchange");

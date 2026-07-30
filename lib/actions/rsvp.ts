@@ -11,6 +11,7 @@ export type RsvpActionResult = { ok: true } | { ok: false; error: string };
 const RSVP_FAILURE_MESSAGES: Record<RsvpFailure, string> = {
 	not_found: "This form no longer exists.",
 	closed: "Submissions are closed.",
+	cancelled: "This event was cancelled.",
 	own_form: "You can't RSVP to your own event.",
 	ineligible: "Your account isn't eligible for YSWS programs.",
 };

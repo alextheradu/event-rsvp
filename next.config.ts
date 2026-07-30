@@ -1,21 +1,26 @@
 import type { NextConfig } from "next";
+import { getPublicOrigins } from "./lib/public-origin";
 
-const allowedOrigins = (process.env.PUBLIC_URL ?? "")
-	.split(",")
-	.map((u) =>
-		u
-			.trim()
-			.replace(/^https?:\/\//, "")
-			.replace(/\/$/, ""),
-	)
-	.filter(Boolean);
+const { allowedHosts } = getPublicOrigins();
 
 const nextConfig: NextConfig = {
 	serverExternalPackages: ["better-sqlite3"],
 	experimental: {
 		serverActions: {
-			allowedOrigins: allowedOrigins.length > 0 ? allowedOrigins : undefined,
+			allowedOrigins: [...allowedHosts],
 		},
+	},
+	async headers() {
+		return [
+			{
+				source: "/feedback/:path*",
+				headers: [
+					{ key: "Referrer-Policy", value: "no-referrer" },
+					{ key: "Cache-Control", value: "private, no-store" },
+					{ key: "X-Robots-Tag", value: "noindex, nofollow" },
+				],
+			},
+		];
 	},
 };
 

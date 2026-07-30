@@ -6,18 +6,56 @@ import { redirect } from "next/navigation";
 import { getSession, isAdmin } from "../auth";
 import { deps } from "../deps";
 import {
+	type EventFormat,
+	EventValidationError,
+	validateEventDetails,
+} from "../event-time";
+import {
 	createForm,
 	deleteForm,
 	getFormById,
 	SLACK_CHANNEL_RE,
 	updateForm,
 } from "../forms";
+import { createCampaign } from "../notifications";
+import {
+	countConfirmed,
+	countWaitlisted,
+	fillAvailableCapacity,
+} from "../rsvp";
 import { users } from "../schema";
-import type { ActionState } from "./feedback";
+export interface ActionState {
+	error?: string;
+}
 
 function str(data: FormData, key: string): string | null {
 	const value = String(data.get(key) ?? "").trim();
 	return value === "" ? null : value;
+}
+
+function numberOrNull(data: FormData, key: string): number | null {
+	const value = str(data, key);
+	return value === null ? null : Number(value);
+}
+
+function eventDetails(data: FormData, allowLegacyEmpty = false) {
+	return validateEventDetails(
+		{
+			startLocal: str(data, "startLocal"),
+			endLocal: str(data, "endLocal"),
+			timezone: str(data, "timezone"),
+			eventFormat: str(data, "eventFormat") as EventFormat | null,
+			capacity: numberOrNull(data, "capacity"),
+			attendeeNotes: str(data, "attendeeNotes"),
+			locationDisplay: str(data, "locationDisplay"),
+			locationLatitude: numberOrNull(data, "locationLatitude"),
+			locationLongitude: numberOrNull(data, "locationLongitude"),
+			locationProvider: str(data, "locationProvider"),
+			locationPlaceId: str(data, "locationPlaceId"),
+			onlineUrl: str(data, "onlineUrl"),
+		},
+		{ allowLegacyEmpty },
+	);
 }
 
 export async function createFormAction(
@@ -36,13 +74,26 @@ export async function createFormAction(
 		return { error: "Your account is not eligible for YSWS programs" };
 	}
 
+	let details: ReturnType<typeof eventDetails>;
+	try {
+		details = eventDetails(data);
+	} catch (error) {
+		return {
+			error:
+				error instanceof EventValidationError
+					? error.message
+					: "Invalid event details",
+		};
+	}
+
 	const result = await createForm(deps.db, user.id, {
 		title: String(data.get("title") ?? ""),
 		slug: String(data.get("slug") ?? ""),
 		description: str(data, "description"),
 		website: str(data, "website"),
 		slackChannelId: str(data, "slackChannelId"),
-		feedbackEnabled: data.has("feedbackEnabled"),
+		feedbackEnabled: false,
+		eventDetails: details,
 	});
 
 	if (!result.ok) return { error: result.error };
@@ -67,14 +118,76 @@ export async function updateFormAction(
 		return { error: "Invalid Slack channel ID" };
 	}
 
-	updateForm(deps.db, id, {
-		isOpen: data.has("isOpen"),
-		isPublic: data.has("isPublic"),
-		feedbackEnabled: data.has("feedbackEnabled"),
-		description: str(data, "description"),
-		website: str(data, "website"),
-		slackChannelId,
-	});
+	let details: ReturnType<typeof eventDetails>;
+	try {
+		details = eventDetails(data, form.startAt === null);
+	} catch (error) {
+		return {
+			error:
+				error instanceof EventValidationError
+					? error.message
+					: "Invalid event details",
+		};
+	}
+
+	const materialChanged = [
+		form.startAt?.getTime() ?? null,
+		form.endAt?.getTime() ?? null,
+		form.timezone,
+		form.eventFormat,
+		form.locationDisplay,
+		form.onlineUrl,
+	].some(
+		(value, index) =>
+			value !==
+			[
+				details.startAt?.getTime() ?? null,
+				details.endAt?.getTime() ?? null,
+				details.timezone,
+				details.eventFormat,
+				details.locationDisplay,
+				details.onlineUrl,
+			][index],
+	);
+	const attendeeCount =
+		countConfirmed(deps.db, id) + countWaitlisted(deps.db, id);
+	if (materialChanged && attendeeCount > 0 && !data.has("confirmChanges")) {
+		return {
+			error:
+				"This changes important event details. Confirm the attendee-impact warning and save again.",
+		};
+	}
+
+	updateForm(
+		deps.db,
+		id,
+		{
+			isOpen: data.has("isOpen"),
+			isPublic: data.has("isPublic"),
+			requiresVerification: data.has("requiresVerification"),
+			feedbackEnabled: form.feedbackEnabled,
+			description: str(data, "description"),
+			website: str(data, "website"),
+			slackChannelId,
+			...details,
+		},
+		user.id,
+	);
+	fillAvailableCapacity(deps, id);
+	if (materialChanged && attendeeCount > 0 && data.has("notifyAttendees")) {
+		for (const audience of ["confirmed", "waitlisted"] as const) {
+			createCampaign(deps.db, {
+				formId: id,
+				creatorId: user.id,
+				kind: "event_updated",
+				audience,
+				template:
+					"{event_name} was updated. Review the current details here: {event_link}",
+				isOperational: true,
+				scheduledAt: new Date(),
+			});
+		}
+	}
 
 	revalidatePath(`/${form.slug}`);
 	revalidatePath(`/${form.slug}/manage`);

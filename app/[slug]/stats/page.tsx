@@ -55,16 +55,6 @@ export default async function StatsPage({ params }: Params) {
 			<p className="text-zinc-400">
 				{total} {total === 1 ? "person" : "people"} RSVP&apos;d
 			</p>
-			{form.slackChannelId && (
-				<a
-					href={`https://hackclub.slack.com/archives/${form.slackChannelId}`}
-					className="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 transition-colors"
-					target="_blank"
-					rel="noopener noreferrer"
-				>
-					Join the Slack channel
-				</a>
-			)}
 		</div>
 	);
 }

@@ -11,12 +11,6 @@ if (process.env.NODE_ENV === "production" && !rawSecret) {
 	);
 }
 
-if (process.env.NODE_ENV === "production" && !process.env.PUBLIC_URL) {
-	throw new Error(
-		"PUBLIC_URL must be set in production. Refusing to derive the public origin from request headers, which are attacker-controlled.",
-	);
-}
-
 const secret = new TextEncoder().encode(
 	rawSecret || "dev-fallback-secret-change-in-production",
 );

@@ -1,23 +1,21 @@
 import { eq } from "drizzle-orm";
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import CancelEventButton from "@/components/CancelEventButton";
+import CopyButton from "@/components/CopyButton";
 import DeleteFormButton from "@/components/DeleteFormButton";
 import FormSettings from "@/components/FormSettings";
 import { getSession, isAdmin, requireSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getFormBySlug } from "@/lib/forms";
-import { getPublicOrigin } from "@/lib/oauth";
-import { feedback as feedbackTable, rsvps, users } from "@/lib/schema";
+import { getPublicOrigin } from "@/lib/public-origin";
+import { feedbackForms, rsvps, users } from "@/lib/schema";
 
 export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ slug: string }> };
 
-// `generateMetadata` runs even on requests the page itself rejects, so it repeats
-// the authorization check. Without it the <title> would leak a private form's name
-// to anyone who guesses the slug.
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
 	const { slug } = await params;
 	const user = await getSession();
@@ -32,7 +30,6 @@ export default async function ManagePage({ params }: Params) {
 	const { slug } = await params;
 	const user = await requireSession(`/${slug}/manage`);
 	const form = getFormBySlug(db, slug);
-
 	if (!form || (form.creatorId !== user.id && !isAdmin(user))) notFound();
 
 	const rsvpList = db
@@ -41,171 +38,295 @@ export default async function ManagePage({ params }: Params) {
 			avatarUrl: users.avatarUrl,
 			rsvpDate: rsvps.createdAt,
 			id: rsvps.id,
+			status: rsvps.status,
+			checkedInAt: rsvps.checkedInAt,
+			channelAccessStatus: rsvps.channelAccessStatus,
 		})
 		.from(rsvps)
 		.innerJoin(users, eq(rsvps.userId, users.id))
 		.where(eq(rsvps.formId, form.id))
 		.orderBy(rsvps.createdAt)
 		.all();
+	const feedbackWorkspace = db
+		.select()
+		.from(feedbackForms)
+		.where(eq(feedbackForms.formId, form.id))
+		.get();
 
-	const feedbackList = form.feedbackEnabled
-		? db
-				.select({
-					id: feedbackTable.id,
-					content: feedbackTable.content,
-					name: users.name,
-					avatarUrl: users.avatarUrl,
-					createdAt: feedbackTable.createdAt,
-				})
-				.from(feedbackTable)
-				.innerJoin(users, eq(feedbackTable.userId, users.id))
-				.where(eq(feedbackTable.formId, form.id))
-				.orderBy(feedbackTable.createdAt)
-				.all()
-		: [];
-
-	const requestHeaders = await headers();
-	const siteUrl = getPublicOrigin(
-		new Request("http://localhost:4321", { headers: requestHeaders }),
-	);
+	const confirmedCount = rsvpList.filter(
+		({ status }) => status === "confirmed",
+	).length;
+	const waitlistCount = rsvpList.filter(
+		({ status }) => status === "waitlisted",
+	).length;
+	const checkedInCount = rsvpList.filter(
+		({ checkedInAt }) => checkedInAt,
+	).length;
+	const accessAttentionCount = rsvpList.filter(({ channelAccessStatus }) =>
+		[
+			"failed",
+			"verification_needed",
+			"verification_unavailable",
+			"needs_review",
+		].includes(channelAccessStatus),
+	).length;
+	const eventDate =
+		form.startAt && form.timezone
+			? new Intl.DateTimeFormat("en-US", {
+					dateStyle: "medium",
+					timeStyle: "short",
+					timeZone: form.timezone,
+				}).format(form.startAt)
+			: "Schedule not set";
+	const eventUrl = `${getPublicOrigin()}/${slug}`;
+	const feedbackStatus = feedbackWorkspace?.status ?? "not set up";
 
 	return (
-		<div className="max-w-2xl mx-auto space-y-10">
-			<div>
-				<Link
-					href={`/${slug}`}
-					className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
-				>
-					Back to form
-				</Link>
-				<h1 className="text-2xl font-bold tracking-tight mt-4">{form.title}</h1>
-				<div className="flex items-center gap-3 mt-2">
-					<span className="text-zinc-500 text-sm">{rsvpList.length} RSVPs</span>
-					<span className="text-zinc-800">·</span>
-					<span className="text-xs text-zinc-600 font-mono select-all">
-						{siteUrl}/{slug}
-					</span>
+		<div className="space-y-10">
+			<section className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+				<div>
+					<div className="flex flex-wrap items-center gap-2">
+						<span
+							className={`inline-flex rounded-md px-2 py-1 text-xs font-semibold ${
+								form.cancelledAt
+									? "bg-red-500/10 text-red-300"
+									: form.isOpen
+										? "bg-emerald-500/10 text-emerald-300"
+										: "bg-zinc-800 text-zinc-400"
+							}`}
+						>
+							{form.cancelledAt
+								? "Cancelled"
+								: form.isOpen
+									? "Accepting RSVPs"
+									: "RSVPs closed"}
+						</span>
+						<span className="text-sm text-zinc-500">{eventDate}</span>
+					</div>
+					<div className="mt-2 flex items-center gap-2">
+						<p className="truncate font-mono text-xs text-zinc-600">
+							{eventUrl}
+						</p>
+						<CopyButton value={eventUrl} label="Copy" />
+					</div>
 				</div>
-			</div>
+				<Link
+					href={`/${slug}/stats`}
+					className="text-sm font-medium text-zinc-400 transition-colors hover:text-white"
+				>
+					Public stats →
+				</Link>
+			</section>
 
-			<section className="bg-zinc-900/50 rounded-2xl border border-zinc-800/60 p-6 space-y-5">
-				<h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wide">
-					Settings
-				</h2>
-				<FormSettings
-					form={{
-						id: form.id,
-						isOpen: form.isOpen,
-						isPublic: form.isPublic,
-						feedbackEnabled: form.feedbackEnabled,
-						description: form.description,
-						website: form.website,
-						slackChannelId: form.slackChannelId,
-					}}
-				/>
+			<section
+				aria-label="Event totals"
+				className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-zinc-800/80 lg:grid-cols-4"
+			>
+				{[
+					["Confirmed", confirmedCount],
+					["Waitlisted", waitlistCount],
+					["Checked in", checkedInCount],
+					["Access issues", accessAttentionCount],
+				].map(([label, value]) => (
+					<div key={label} className="bg-zinc-900/90 px-5 py-5">
+						<p className="text-2xl font-semibold tabular-nums tracking-tight text-white">
+							{value}
+						</p>
+						<p className="mt-1 text-xs font-medium text-zinc-500">{label}</p>
+					</div>
+				))}
 			</section>
 
 			<section>
-				<div className="flex items-center justify-between mb-4">
-					<h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wide">
-						RSVPs
+				<div className="mb-4">
+					<p className="text-xs font-semibold tracking-[0.14em] text-zinc-600 uppercase">
+						Run the event
+					</p>
+					<h2 className="mt-1 text-xl font-semibold tracking-tight text-white">
+						Your event tools
 					</h2>
+				</div>
+				<div className="grid gap-3 lg:grid-cols-12">
 					<Link
-						href={`/${slug}/stats`}
-						className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+						href={`/${slug}/manage/feedback`}
+						className="group relative overflow-hidden rounded-2xl bg-primary p-6 text-white transition-transform hover:-translate-y-0.5 active:translate-y-0 lg:col-span-6"
 					>
-						Public stats page
+						<div className="absolute -right-16 -top-20 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
+						<div className="relative flex min-h-40 flex-col justify-between">
+							<div>
+								<div className="flex items-center justify-between gap-4">
+									<p className="text-xs font-semibold tracking-[0.14em] text-white/65 uppercase">
+										Post-event feedback
+									</p>
+									<span className="rounded-md bg-black/15 px-2 py-1 text-xs font-medium capitalize">
+										{feedbackStatus}
+									</span>
+								</div>
+								<h3 className="mt-4 max-w-md text-2xl font-semibold tracking-tight">
+									Write your questions and DM attendees after check-in.
+								</h3>
+							</div>
+							<span className="mt-6 text-sm font-semibold">
+								Open feedback builder{" "}
+								<span className="inline-block transition-transform group-hover:translate-x-1">
+									→
+								</span>
+							</span>
+						</div>
+					</Link>
+
+					<Link
+						href={`/${slug}/manage/roster`}
+						className="group flex min-h-40 flex-col justify-between rounded-2xl bg-zinc-900 p-5 ring-1 ring-inset ring-zinc-800 transition-all hover:bg-zinc-800/80 hover:ring-zinc-700 lg:col-span-3"
+					>
+						<div>
+							<p className="text-xs font-semibold tracking-[0.12em] text-zinc-600 uppercase">
+								Roster
+							</p>
+							<h3 className="mt-3 text-lg font-semibold text-white">
+								Check in attendees
+							</h3>
+							<p className="mt-2 text-sm leading-relaxed text-zinc-500">
+								Review verification and channel access.
+							</p>
+						</div>
+						<span className="mt-5 text-sm font-medium text-zinc-300 group-hover:text-white">
+							Open roster →
+						</span>
+					</Link>
+
+					<Link
+						href={`/${slug}/manage/notifications`}
+						className="group flex min-h-40 flex-col justify-between rounded-2xl bg-zinc-900 p-5 ring-1 ring-inset ring-zinc-800 transition-all hover:bg-zinc-800/80 hover:ring-zinc-700 lg:col-span-3"
+					>
+						<div>
+							<p className="text-xs font-semibold tracking-[0.12em] text-zinc-600 uppercase">
+								Messages
+							</p>
+							<h3 className="mt-3 text-lg font-semibold text-white">
+								Remind your attendees
+							</h3>
+							<p className="mt-2 text-sm leading-relaxed text-zinc-500">
+								Preview, schedule, and track Slack DMs.
+							</p>
+						</div>
+						<span className="mt-5 text-sm font-medium text-zinc-300 group-hover:text-white">
+							Open messages →
+						</span>
 					</Link>
 				</div>
-				{rsvpList.length === 0 ? (
-					<p className="text-zinc-600 text-sm text-center py-10">
-						No RSVPs yet.
-					</p>
-				) : (
-					<div className="space-y-1.5">
-						{rsvpList.map(({ id, name, avatarUrl, rsvpDate }) => (
-							<div
-								key={id}
-								className="flex items-center gap-3 p-3.5 bg-zinc-900/50 rounded-xl border border-zinc-800/60"
-							>
-								{avatarUrl ? (
-									// biome-ignore lint/performance/noImgElement: avatar URLs are arbitrary remote hosts; next/image would need every one allowlisted.
-									<img
-										src={avatarUrl}
-										alt=""
-										className="w-8 h-8 rounded-full"
-									/>
-								) : (
-									<div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm text-zinc-500 font-medium">
-										{name.charAt(0).toUpperCase()}
-									</div>
-								)}
-								<span className="flex-1 text-sm font-medium truncate">
-									{name}
-								</span>
-								{/* Explicit locale: the Astro original used the server's LANG,
-								    which renders differently per machine. */}
-								<span className="text-xs text-zinc-600 shrink-0">
-									{rsvpDate.toLocaleDateString("en-US")}
-								</span>
-							</div>
-						))}
-					</div>
-				)}
 			</section>
 
-			{form.feedbackEnabled && (
-				<section>
-					<h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wide mb-4">
-						Feedback
-					</h2>
-					{feedbackList.length === 0 ? (
-						<p className="text-zinc-600 text-sm text-center py-10">
-							No feedback yet.
+			<section className="grid gap-8 border-t border-zinc-800/80 pt-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
+				<div className="space-y-6">
+					<div>
+						<p className="text-xs font-semibold tracking-[0.14em] text-zinc-600 uppercase">
+							Configuration
 						</p>
-					) : (
-						<div className="space-y-2">
-							{feedbackList.map(
-								({ id, content, name, avatarUrl, createdAt }) => (
-									<div
-										key={id}
-										className="p-4 bg-zinc-900/50 rounded-xl border border-zinc-800/60"
-									>
-										<p className="text-sm text-zinc-300 leading-relaxed">
-											{content}
-										</p>
-										<div className="flex items-center gap-2 mt-3">
-											{avatarUrl ? (
-												// biome-ignore lint/performance/noImgElement: avatar URLs are arbitrary remote hosts; next/image would need every one allowlisted.
+						<h2 className="mt-1 text-xl font-semibold tracking-tight text-white">
+							Event settings
+						</h2>
+						<p className="mt-2 max-w-xl text-sm leading-relaxed text-zinc-500">
+							Changes to time or location can optionally notify everyone
+							affected.
+						</p>
+					</div>
+					{form.capacity !== null && confirmedCount > form.capacity && (
+						<p className="rounded-lg bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+							This event is {confirmedCount - form.capacity} attendee(s) over
+							capacity. Existing confirmations remain in place.
+						</p>
+					)}
+					<FormSettings
+						form={{
+							id: form.id,
+							isOpen: form.isOpen,
+							isPublic: form.isPublic,
+							requiresVerification: form.requiresVerification,
+							feedbackEnabled: form.feedbackEnabled,
+							description: form.description,
+							website: form.website,
+							slackChannelId: form.slackChannelId,
+							startAt: form.startAt,
+							endAt: form.endAt,
+							timezone: form.timezone,
+							eventFormat: form.eventFormat,
+							capacity: form.capacity,
+							attendeeNotes: form.attendeeNotes,
+							locationDisplay: form.locationDisplay,
+							locationLatitude: form.locationLatitude,
+							locationLongitude: form.locationLongitude,
+							locationProvider: form.locationProvider,
+							locationPlaceId: form.locationPlaceId,
+							onlineUrl: form.onlineUrl,
+						}}
+					/>
+				</div>
+
+				<aside className="space-y-8 lg:border-l lg:border-zinc-800/80 lg:pl-8">
+					<div>
+						<div className="flex items-center justify-between">
+							<h2 className="font-semibold text-white">Recent RSVPs</h2>
+							<Link
+								href={`/${slug}/manage/roster`}
+								className="text-xs font-medium text-primary hover:text-red-300"
+							>
+								View all
+							</Link>
+						</div>
+						{rsvpList.length === 0 ? (
+							<p className="py-8 text-center text-sm text-zinc-600">
+								No RSVPs yet.
+							</p>
+						) : (
+							<div className="mt-4 divide-y divide-zinc-800/80">
+								{rsvpList
+									.slice(-5)
+									.reverse()
+									.map((rsvp) => (
+										<div key={rsvp.id} className="flex items-center gap-3 py-3">
+											{rsvp.avatarUrl ? (
+												// biome-ignore lint/performance/noImgElement: arbitrary Slack avatar hosts cannot be statically allowlisted.
 												<img
-													src={avatarUrl}
+													src={rsvp.avatarUrl}
 													alt=""
-													className="w-5 h-5 rounded-full"
+													className="h-8 w-8 rounded-lg object-cover"
 												/>
 											) : (
-												<div className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center text-[10px] text-zinc-500 font-medium">
-													{name.charAt(0).toUpperCase()}
+												<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-800 text-xs font-semibold text-zinc-400">
+													{rsvp.name.charAt(0).toUpperCase()}
 												</div>
 											)}
-											<span className="text-xs text-zinc-500">{name}</span>
-											<span className="text-xs text-zinc-700">·</span>
-											<span className="text-xs text-zinc-600">
-												{createdAt.toLocaleDateString("en-US")}
-											</span>
+											<div className="min-w-0 flex-1">
+												<p className="truncate text-sm font-medium text-zinc-200">
+													{rsvp.name}
+												</p>
+												<p className="text-xs capitalize text-zinc-600">
+													{rsvp.status}
+												</p>
+											</div>
 										</div>
-									</div>
-								),
-							)}
-						</div>
-					)}
-				</section>
-			)}
+									))}
+							</div>
+						)}
+					</div>
 
-			<section className="bg-zinc-900/50 rounded-2xl border border-red-900/20 p-6 space-y-3">
-				<h2 className="text-sm font-medium text-red-400 uppercase tracking-wide">
-					Danger zone
-				</h2>
-				<DeleteFormButton formId={form.id} />
+					<div className="space-y-4 rounded-xl bg-red-950/15 p-5 ring-1 ring-inset ring-red-900/30">
+						<p className="text-xs font-semibold tracking-[0.12em] text-red-400 uppercase">
+							Danger zone
+						</p>
+						<div className="space-y-5">
+							<CancelEventButton
+								formId={form.id}
+								slug={form.slug}
+								cancelled={Boolean(form.cancelledAt)}
+							/>
+							<div className="border-t border-red-900/30 pt-4">
+								<DeleteFormButton formId={form.id} />
+							</div>
+						</div>
+					</div>
+				</aside>
 			</section>
 		</div>
 	);

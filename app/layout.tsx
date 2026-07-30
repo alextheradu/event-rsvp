@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import type { ReactNode } from "react";
 import Nav from "@/components/Nav";
 import { getSession } from "@/lib/auth";
+import { getPublicOrigin } from "@/lib/public-origin";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -13,10 +14,7 @@ const jakarta = Plus_Jakarta_Sans({
 
 // `metadataBase` lets Next resolve relative og:url values against the real public
 // origin. Without it, og:url is omitted and Slack unfurls degrade.
-const publicUrl = (process.env.PUBLIC_URL ?? "http://localhost:4321")
-	.split(",")[0]
-	.trim()
-	.replace(/\/$/, "");
+const publicUrl = getPublicOrigin();
 
 export const metadata: Metadata = {
 	metadataBase: new URL(publicUrl),
@@ -49,7 +47,12 @@ export default async function RootLayout({
 		<html lang="en" className={jakarta.variable}>
 			<body className="bg-zinc-950 text-zinc-100 min-h-screen font-sans antialiased">
 				<Nav user={user} />
-				<main className="max-w-3xl mx-auto px-4 py-12">{children}</main>
+				<main
+					id="main-content"
+					className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8"
+				>
+					{children}
+				</main>
 			</body>
 		</html>
 	);

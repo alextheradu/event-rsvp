@@ -1,4 +1,4 @@
-import { count, eq } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import AllowToggle from "@/components/AllowToggle";
@@ -28,7 +28,10 @@ export default async function AdminPage() {
 		})
 		.from(forms)
 		.leftJoin(users, eq(forms.creatorId, users.id))
-		.leftJoin(rsvps, eq(forms.id, rsvps.formId))
+		.leftJoin(
+			rsvps,
+			and(eq(forms.id, rsvps.formId), eq(rsvps.status, "confirmed")),
+		)
 		.groupBy(forms.id)
 		.orderBy(forms.createdAt)
 		.all();

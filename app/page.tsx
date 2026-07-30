@@ -2,6 +2,7 @@ import { desc, eq } from "drizzle-orm";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { countConfirmed, countWaitlisted } from "@/lib/rsvp";
 import { forms, rsvps } from "@/lib/schema";
 
 export const dynamic = "force-dynamic";
@@ -63,6 +64,10 @@ export default async function Home() {
 									<div>
 										<h3 className="font-medium">{form.title}</h3>
 										<p className="text-sm text-zinc-500 mt-0.5">/{form.slug}</p>
+										<p className="text-xs text-zinc-600 mt-1">
+											{countConfirmed(db, form.id)} confirmed ·{" "}
+											{countWaitlisted(db, form.id)} waitlisted
+										</p>
 									</div>
 									<span
 										className={
@@ -101,7 +106,12 @@ export default async function Home() {
 								    with no argument, which silently follows the server's LANG and
 								    renders differently on the dev machine and in the container. */}
 								<p className="text-sm text-zinc-500 mt-0.5">
-									RSVP&apos;d {rsvp.createdAt.toLocaleDateString("en-US")}
+									<span className="capitalize">{rsvp.status}</span> ·{" "}
+									{form.startAt
+										? form.startAt.toLocaleDateString("en-US", {
+												timeZone: form.timezone ?? "UTC",
+											})
+										: rsvp.createdAt.toLocaleDateString("en-US")}
 								</p>
 							</Link>
 						))}

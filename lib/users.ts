@@ -1,18 +1,27 @@
 import { and, eq } from "drizzle-orm";
 import type { DB } from "./db";
-import { feedback, forms, rsvps, users } from "./schema";
+import {
+	channelAccessAttempts,
+	eventChanges,
+	feedback,
+	feedbackAnswers,
+	feedbackInvitations,
+	feedbackResponses,
+	forms,
+	notificationCampaigns,
+	notificationDeliveries,
+	rsvps,
+	users,
+} from "./schema";
 import type { SessionUser } from "./session";
 import type { SlackPort } from "./slack";
+import { createHackClubVerification } from "./verification";
 
 export type EligibilityCheck = (slackId: string) => Promise<boolean>;
 
 export const checkHackClubEligibility: EligibilityCheck = async (slackId) => {
-	const res = await fetch(
-		`https://identity.hackclub.com/api/external/check?slack_id=${slackId}`,
-	)
-		.then((r) => r.json())
-		.catch(() => null);
-	return res?.result === "verified_eligible";
+	const result = await createHackClubVerification().checkSlackId(slackId);
+	return result.status === "verified_eligible";
 };
 
 export interface OAuthIdentity {
@@ -36,23 +45,92 @@ export interface OAuthIdentity {
  * (form_id, user_id) and the same human may have rows under both identities.
  */
 function mergeUsers(db: DB, winnerId: string, loserId: string): void {
-	const loserForms = db
-		.select({ formId: rsvps.formId })
+	const loserRsvps = db
+		.select({ id: rsvps.id, formId: rsvps.formId })
 		.from(rsvps)
 		.where(eq(rsvps.userId, loserId))
-		.all()
-		.map((r) => r.formId);
+		.all();
 
-	for (const formId of loserForms) {
+	for (const loserRsvp of loserRsvps) {
 		const clash = db
 			.select()
 			.from(rsvps)
-			.where(and(eq(rsvps.formId, formId), eq(rsvps.userId, winnerId)))
+			.where(
+				and(eq(rsvps.formId, loserRsvp.formId), eq(rsvps.userId, winnerId)),
+			)
 			.get();
 		if (clash) {
-			db.delete(rsvps)
-				.where(and(eq(rsvps.formId, formId), eq(rsvps.userId, loserId)))
+			db.delete(channelAccessAttempts)
+				.where(eq(channelAccessAttempts.rsvpId, loserRsvp.id))
 				.run();
+			const deliveries = db
+				.select()
+				.from(notificationDeliveries)
+				.where(eq(notificationDeliveries.rsvpId, loserRsvp.id))
+				.all();
+			for (const delivery of deliveries) {
+				const duplicate = db
+					.select()
+					.from(notificationDeliveries)
+					.where(
+						and(
+							eq(notificationDeliveries.campaignId, delivery.campaignId),
+							eq(notificationDeliveries.rsvpId, clash.id),
+						),
+					)
+					.get();
+				if (duplicate) {
+					db.delete(notificationDeliveries)
+						.where(eq(notificationDeliveries.id, delivery.id))
+						.run();
+				} else {
+					db.update(notificationDeliveries)
+						.set({ rsvpId: clash.id, userId: winnerId })
+						.where(eq(notificationDeliveries.id, delivery.id))
+						.run();
+				}
+			}
+			const invitations = db
+				.select()
+				.from(feedbackInvitations)
+				.where(eq(feedbackInvitations.rsvpId, loserRsvp.id))
+				.all();
+			for (const invitation of invitations) {
+				const duplicate = db
+					.select()
+					.from(feedbackInvitations)
+					.where(
+						and(
+							eq(feedbackInvitations.feedbackFormId, invitation.feedbackFormId),
+							eq(feedbackInvitations.rsvpId, clash.id),
+						),
+					)
+					.get();
+				if (duplicate) {
+					const response = db
+						.select()
+						.from(feedbackResponses)
+						.where(eq(feedbackResponses.invitationId, invitation.id))
+						.get();
+					if (response) {
+						db.delete(feedbackAnswers)
+							.where(eq(feedbackAnswers.responseId, response.id))
+							.run();
+						db.delete(feedbackResponses)
+							.where(eq(feedbackResponses.id, response.id))
+							.run();
+					}
+					db.delete(feedbackInvitations)
+						.where(eq(feedbackInvitations.id, invitation.id))
+						.run();
+				} else {
+					db.update(feedbackInvitations)
+						.set({ rsvpId: clash.id })
+						.where(eq(feedbackInvitations.id, invitation.id))
+						.run();
+				}
+			}
+			db.delete(rsvps).where(eq(rsvps.id, loserRsvp.id)).run();
 		}
 	}
 
@@ -80,6 +158,10 @@ function mergeUsers(db: DB, winnerId: string, loserId: string): void {
 		.set({ userId: winnerId })
 		.where(eq(rsvps.userId, loserId))
 		.run();
+	db.update(rsvps)
+		.set({ checkedInBy: winnerId })
+		.where(eq(rsvps.checkedInBy, loserId))
+		.run();
 	db.update(feedback)
 		.set({ userId: winnerId })
 		.where(eq(feedback.userId, loserId))
@@ -87,6 +169,18 @@ function mergeUsers(db: DB, winnerId: string, loserId: string): void {
 	db.update(forms)
 		.set({ creatorId: winnerId })
 		.where(eq(forms.creatorId, loserId))
+		.run();
+	db.update(eventChanges)
+		.set({ actorId: winnerId })
+		.where(eq(eventChanges.actorId, loserId))
+		.run();
+	db.update(notificationCampaigns)
+		.set({ creatorId: winnerId })
+		.where(eq(notificationCampaigns.creatorId, loserId))
+		.run();
+	db.update(notificationDeliveries)
+		.set({ userId: winnerId })
+		.where(eq(notificationDeliveries.userId, loserId))
 		.run();
 
 	db.delete(users).where(eq(users.id, loserId)).run();

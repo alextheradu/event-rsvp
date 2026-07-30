@@ -1,6 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { createForm, deleteForm, getFormBySlug } from "./forms";
-import { feedback, forms, rsvps, users } from "./schema";
+import {
+	channelAccessAttempts,
+	eventChanges,
+	feedback,
+	feedbackAnswers,
+	feedbackForms,
+	feedbackInvitations,
+	feedbackQuestions,
+	feedbackResponses,
+	forms,
+	notificationCampaigns,
+	notificationDeliveries,
+	rsvps,
+	users,
+} from "./schema";
 import { createTestDb } from "./test-db";
 
 function seedUser(db: ReturnType<typeof createTestDb>, id = "u1") {
@@ -31,6 +45,7 @@ describe("createForm", () => {
 		const result = await createForm(db, uid, { ...base, slug: "meetup" });
 		expect(result).toEqual({ ok: true, slug: "meetup" });
 		expect(getFormBySlug(db, "meetup")?.title).toBe("Meetup");
+		expect(getFormBySlug(db, "meetup")?.requiresVerification).toBe(true);
 	});
 
 	it("rejects a reserved slug", async () => {
@@ -127,11 +142,97 @@ describe("deleteForm", () => {
 		db.insert(feedback)
 			.values({ id: "f1", formId: form.id, userId: other, content: "nice" })
 			.run();
+		db.insert(eventChanges)
+			.values({
+				id: "change",
+				formId: form.id,
+				actorId: uid,
+				kind: "test",
+				beforeJson: "{}",
+				afterJson: "{}",
+			})
+			.run();
+		db.insert(channelAccessAttempts)
+			.values({
+				id: "access",
+				rsvpId: "r1",
+				kind: "grant",
+				nextAttemptAt: new Date(),
+			})
+			.run();
+		db.insert(notificationCampaigns)
+			.values({
+				id: "campaign",
+				formId: form.id,
+				kind: "test",
+				audience: "single",
+				template: "test",
+				creatorId: uid,
+			})
+			.run();
+		db.insert(notificationDeliveries)
+			.values({
+				id: "delivery",
+				campaignId: "campaign",
+				rsvpId: "r1",
+				userId: other,
+				renderedText: "test",
+				nextAttemptAt: new Date(),
+			})
+			.run();
+		db.insert(feedbackForms)
+			.values({
+				id: "feedback-form",
+				formId: form.id,
+				title: "Feedback",
+				dmTemplate: "{feedback_link}",
+			})
+			.run();
+		db.insert(feedbackQuestions)
+			.values({
+				id: "question",
+				feedbackFormId: "feedback-form",
+				kind: "short_text",
+				prompt: "Thoughts?",
+				position: 0,
+			})
+			.run();
+		db.insert(feedbackInvitations)
+			.values({
+				id: "invitation",
+				feedbackFormId: "feedback-form",
+				rsvpId: "r1",
+			})
+			.run();
+		db.insert(feedbackResponses)
+			.values({
+				id: "response",
+				invitationId: "invitation",
+				submittedAt: new Date(),
+			})
+			.run();
+		db.insert(feedbackAnswers)
+			.values({
+				id: "answer",
+				responseId: "response",
+				questionId: "question",
+				valueJson: '"nice"',
+			})
+			.run();
 
 		deleteForm(db, form.id);
 
 		expect(db.select().from(forms).all()).toHaveLength(0);
 		expect(db.select().from(rsvps).all()).toHaveLength(0);
 		expect(db.select().from(feedback).all()).toHaveLength(0);
+		expect(db.select().from(eventChanges).all()).toHaveLength(0);
+		expect(db.select().from(channelAccessAttempts).all()).toHaveLength(0);
+		expect(db.select().from(notificationCampaigns).all()).toHaveLength(0);
+		expect(db.select().from(notificationDeliveries).all()).toHaveLength(0);
+		expect(db.select().from(feedbackForms).all()).toHaveLength(0);
+		expect(db.select().from(feedbackQuestions).all()).toHaveLength(0);
+		expect(db.select().from(feedbackInvitations).all()).toHaveLength(0);
+		expect(db.select().from(feedbackResponses).all()).toHaveLength(0);
+		expect(db.select().from(feedbackAnswers).all()).toHaveLength(0);
 	});
 });

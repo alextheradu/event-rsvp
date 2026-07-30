@@ -2,6 +2,7 @@
 
 import { useActionState, useRef, useState } from "react";
 import { createFormAction } from "@/lib/actions/form";
+import EventDetailsFields from "./EventDetailsFields";
 
 const inputClass =
 	"w-full bg-zinc-900/50 border border-zinc-800/60 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all disabled:opacity-50";
@@ -141,17 +142,7 @@ export default function NewFormForm({ canCreate }: { canCreate: boolean }) {
 					</p>
 				</div>
 
-				<label className="flex items-center gap-3 cursor-pointer select-none">
-					<input
-						type="checkbox"
-						name="feedbackEnabled"
-						disabled={!canCreate}
-						className="rounded border-zinc-700 bg-zinc-900 text-primary focus:ring-0 focus:ring-offset-0"
-					/>
-					<span className="text-sm text-zinc-300">
-						Enable feedback from attendees
-					</span>
-				</label>
+				<EventDetailsFields />
 
 				<button
 					type="submit"

@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 		},
 	);
 
-	const redirectUri = buildOauthRedirectUri(request);
+	const redirectUri = buildOauthRedirectUri();
 	const authUrl = new URL("https://auth.hackclub.com/oauth/authorize");
 	authUrl.searchParams.set("client_id", clientId);
 	authUrl.searchParams.set("redirect_uri", redirectUri);
