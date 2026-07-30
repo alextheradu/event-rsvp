@@ -38,7 +38,8 @@ describe("slack client", () => {
 			String(c[0]).endsWith("chat.postMessage"),
 		);
 		expect(postCall).toBeDefined();
-		expect(String((postCall?.[1] as RequestInit).body)).toContain("channel=D1");
+		const init = postCall?.[1] as RequestInit;
+		expect(String(init.body)).toContain("channel=D1");
 	});
 
 	it("joins a channel before inviting", async () => {

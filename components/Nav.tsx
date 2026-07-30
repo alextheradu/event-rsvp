@@ -31,6 +31,7 @@ export default function Nav({ user }: { user: SessionUser | null }) {
 							)}
 							<div className="flex items-center gap-2.5">
 								{user.avatarUrl ? (
+									// biome-ignore lint/performance/noImgElement: Slack avatar hosts are not stable enough to hard-code as next/image remote patterns.
 									<img
 										src={user.avatarUrl}
 										alt=""

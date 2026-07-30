@@ -3,8 +3,22 @@ import { jwtVerify, SignJWT } from "jose";
 export const SESSION_COOKIE = "session";
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 7;
 
+const rawSecret = process.env.SESSION_SECRET;
+
+if (process.env.NODE_ENV === "production" && !rawSecret) {
+	throw new Error(
+		"SESSION_SECRET must be set in production. Refusing to start with the public dev fallback secret.",
+	);
+}
+
+if (process.env.NODE_ENV === "production" && !process.env.PUBLIC_URL) {
+	throw new Error(
+		"PUBLIC_URL must be set in production. Refusing to derive the public origin from request headers, which are attacker-controlled.",
+	);
+}
+
 const secret = new TextEncoder().encode(
-	process.env.SESSION_SECRET || "dev-fallback-secret-change-in-production",
+	rawSecret || "dev-fallback-secret-change-in-production",
 );
 
 export interface SessionUser {

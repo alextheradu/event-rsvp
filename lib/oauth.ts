@@ -29,7 +29,8 @@ export function getPublicOrigin(
 			?.trim();
 		const host = forwardedHost ?? request.headers.get("host");
 		if (host) {
-			const proto = forwardedProto ?? new URL(request.url).protocol.replace(/:$/, "");
+			const proto =
+				forwardedProto ?? new URL(request.url).protocol.replace(/:$/, "");
 			return `${proto}://${host}`;
 		}
 	}

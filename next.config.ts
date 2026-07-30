@@ -11,7 +11,6 @@ const allowedOrigins = (process.env.PUBLIC_URL ?? "")
 	.filter(Boolean);
 
 const nextConfig: NextConfig = {
-	output: "standalone",
 	serverExternalPackages: ["better-sqlite3"],
 	experimental: {
 		serverActions: {
