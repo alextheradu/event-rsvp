@@ -139,7 +139,11 @@ export default function NewFormForm({ canCreate }: { canCreate: boolean }) {
 					/>
 					<p className="text-xs text-zinc-600">
 						People who RSVP will be invited to this channel. For a private
-						channel, add the RSVP bot as a member first.
+						channel, run{" "}
+						<code className="font-mono text-zinc-500">
+							/invite @basement_dweller
+						</code>{" "}
+						first.
 					</p>
 				</div>
 

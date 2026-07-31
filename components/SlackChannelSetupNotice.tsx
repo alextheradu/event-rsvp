@@ -56,8 +56,11 @@ export default function SlackChannelSetupNotice({
 							2
 						</span>
 						<span className="pt-1">
-							Type <code className="font-mono text-zinc-100">/invite</code>,
-							then select the RSVP bot.
+							Type{" "}
+							<code className="font-mono text-zinc-100">
+								/invite @basement_dweller
+							</code>
+							.
 						</span>
 					</li>
 					<li className="grid grid-cols-[1.75rem_1fr] gap-3">
