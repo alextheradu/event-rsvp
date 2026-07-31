@@ -186,6 +186,10 @@ export default function FormSettings({ form }: { form: EditableFormSettings }) {
 							placeholder="C0123456789"
 							className={fieldClass}
 						/>
+						<p className="text-xs leading-relaxed text-zinc-600">
+							For a private channel, type /invite in Slack and add the RSVP bot
+							before attendees RSVP.
+						</p>
 					</div>
 				</div>
 			</section>

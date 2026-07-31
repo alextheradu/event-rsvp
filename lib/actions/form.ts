@@ -97,7 +97,11 @@ export async function createFormAction(
 	});
 
 	if (!result.ok) return { error: result.error };
-	redirect(`/${result.slug}/manage`);
+	redirect(
+		str(data, "slackChannelId")
+			? `/${result.slug}/manage?created=slack`
+			: `/${result.slug}/manage`,
+	);
 }
 
 export async function updateFormAction(

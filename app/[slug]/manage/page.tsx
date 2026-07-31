@@ -6,6 +6,7 @@ import CancelEventButton from "@/components/CancelEventButton";
 import CopyButton from "@/components/CopyButton";
 import DeleteFormButton from "@/components/DeleteFormButton";
 import FormSettings from "@/components/FormSettings";
+import SlackChannelSetupNotice from "@/components/SlackChannelSetupNotice";
 import { getSession, isAdmin, requireSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getFormBySlug } from "@/lib/forms";
@@ -14,7 +15,10 @@ import { feedbackForms, rsvps, users } from "@/lib/schema";
 
 export const dynamic = "force-dynamic";
 
-type Params = { params: Promise<{ slug: string }> };
+type Params = {
+	params: Promise<{ slug: string }>;
+	searchParams: Promise<{ created?: string }>;
+};
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
 	const { slug } = await params;
@@ -26,8 +30,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 	return { title: `Manage - ${form.title}` };
 }
 
-export default async function ManagePage({ params }: Params) {
-	const { slug } = await params;
+export default async function ManagePage({ params, searchParams }: Params) {
+	const [{ slug }, { created }] = await Promise.all([params, searchParams]);
 	const user = await requireSession(`/${slug}/manage`);
 	const form = getFormBySlug(db, slug);
 	if (!form || (form.creatorId !== user.id && !isAdmin(user))) notFound();
@@ -83,6 +87,9 @@ export default async function ManagePage({ params }: Params) {
 
 	return (
 		<div className="space-y-10">
+			{created === "slack" && form.slackChannelId && (
+				<SlackChannelSetupNotice channelId={form.slackChannelId} />
+			)}
 			<section className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 				<div>
 					<div className="flex flex-wrap items-center gap-2">
