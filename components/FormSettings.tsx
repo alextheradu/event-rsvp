@@ -188,8 +188,8 @@ export default function FormSettings({ form }: { form: EditableFormSettings }) {
 						/>
 						<p className="text-xs leading-relaxed text-zinc-600">
 							For a private channel, run{" "}
-							<code className="font-mono text-zinc-500">
-								/invite @basement_dweller
+							<code className="rounded bg-zinc-800/80 px-1.5 py-0.5 font-mono text-zinc-300">
+								/invite @basement dweller
 							</code>{" "}
 							before attendees RSVP.
 						</p>

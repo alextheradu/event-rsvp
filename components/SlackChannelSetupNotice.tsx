@@ -1,6 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import CopyButton from "./CopyButton";
+
+const SLACK_INVITE_COMMAND = "/invite @basement dweller";
+const SLACK_BOT_URL =
+	"https://slack.com/app_redirect?app=A0BLNTKNRLM&team=T0266FRGM";
 
 export default function SlackChannelSetupNotice({
 	channelId,
@@ -55,17 +60,40 @@ export default function SlackChannelSetupNotice({
 						<span className="flex h-7 w-7 items-center justify-center rounded-md bg-zinc-800 font-mono text-xs text-zinc-400">
 							2
 						</span>
-						<span className="pt-1">
-							Type{" "}
-							<code className="font-mono text-zinc-100">
-								/invite @basement_dweller
-							</code>
-							.
-						</span>
+						<div>
+							<p className="pt-1 text-zinc-400">Run this command in Slack:</p>
+							<div className="mt-2 flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+								<code className="min-w-0 flex-1 overflow-x-auto font-mono text-sm font-semibold whitespace-nowrap text-zinc-100">
+									{SLACK_INVITE_COMMAND}
+								</code>
+								<CopyButton
+									value={SLACK_INVITE_COMMAND}
+									label="Copy"
+									className="shrink-0 bg-zinc-800 active:translate-y-px"
+								/>
+							</div>
+							<a
+								href={SLACK_BOT_URL}
+								target="_blank"
+								rel="noreferrer"
+								className="mt-2 inline-flex text-xs font-medium text-primary transition-colors hover:text-red-300"
+							>
+								Open the exact bot in Slack
+							</a>
+						</div>
 					</li>
 					<li className="grid grid-cols-[1.75rem_1fr] gap-3">
 						<span className="flex h-7 w-7 items-center justify-center rounded-md bg-zinc-800 font-mono text-xs text-zinc-400">
 							3
+						</span>
+						<span className="pt-1">
+							Confirm that the bot's profile picture is the cat in a warzone to
+							make sure you didn't invite the wrong bot/person.
+						</span>
+					</li>
+					<li className="grid grid-cols-[1.75rem_1fr] gap-3">
+						<span className="flex h-7 w-7 items-center justify-center rounded-md bg-zinc-800 font-mono text-xs text-zinc-400">
+							4
 						</span>
 						<span className="pt-1">
 							Confirm that the channel ID is{" "}
