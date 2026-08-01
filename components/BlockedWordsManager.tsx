@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import {
 	addBlockedWordAction,
 	type BlockedWordActionState,
 	removeBlockedWordAction,
 } from "@/lib/actions/admin";
+import { normalizeBlockedWord } from "@/lib/content-normalization";
 
 interface BlockedWordItem {
 	id: string;
@@ -37,9 +38,18 @@ export default function BlockedWordsManager({
 		{} as BlockedWordActionState,
 	);
 	const formRef = useRef<HTMLFormElement>(null);
+	const [wordInput, setWordInput] = useState("");
+	const [showWords, setShowWords] = useState(false);
+	const normalizedInput = normalizeBlockedWord(wordInput);
+	const alreadyExists =
+		normalizedInput.length > 0 &&
+		words.some((word) => word.normalized === normalizedInput);
 
 	useEffect(() => {
-		if (state.success) formRef.current?.reset();
+		if (state.success) {
+			formRef.current?.reset();
+			setWordInput("");
+		}
 	}, [state.success]);
 
 	return (
@@ -49,9 +59,15 @@ export default function BlockedWordsManager({
 					<h2 className="text-sm font-medium uppercase tracking-wide text-zinc-400">
 						Blocked RSVP words
 					</h2>
-					<span className="font-mono text-xs text-zinc-700">
-						{words.length}
-					</span>
+					<button
+						type="button"
+						onClick={() => setShowWords((visible) => !visible)}
+						aria-expanded={showWords}
+						aria-controls="blocked-word-list"
+						className="rounded-lg px-2 py-1 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-900 hover:text-zinc-300 active:scale-[0.98]"
+					>
+						{showWords ? "Hide words" : `View words (${words.length})`}
+					</button>
 				</div>
 				<p className="max-w-[65ch] text-sm leading-relaxed text-zinc-500">
 					Stops new forms containing a blocked word, including number, symbol,
@@ -74,13 +90,17 @@ export default function BlockedWordsManager({
 						required
 						maxLength={80}
 						autoComplete="off"
+						value={wordInput}
+						onChange={(event) => setWordInput(event.target.value)}
+						aria-invalid={alreadyExists}
+						aria-describedby={alreadyExists ? "blocked-word-error" : undefined}
 						placeholder="Enter a word"
 						className="min-w-0 rounded-xl border border-zinc-800/70 bg-zinc-900/50 px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-700 focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
 						disabled={pending}
 					/>
 					<button
 						type="submit"
-						disabled={pending}
+						disabled={pending || alreadyExists}
 						className="rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-primary-dark active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
 					>
 						{pending ? "Adding…" : "Block word"}
@@ -89,6 +109,11 @@ export default function BlockedWordsManager({
 				<p className="text-xs text-zinc-600">
 					Matching ignores case, separators, and lookalike substitutions.
 				</p>
+				{alreadyExists && (
+					<p id="blocked-word-error" className="text-sm text-amber-400">
+						That word or an equivalent is already blocked.
+					</p>
+				)}
 				{state.error && (
 					<p className="rounded-lg border border-red-900/30 bg-red-950/30 px-3 py-2 text-sm text-red-400">
 						{state.error}
@@ -101,29 +126,33 @@ export default function BlockedWordsManager({
 				)}
 			</form>
 
-			{words.length === 0 ? (
-				<div className="rounded-xl border border-dashed border-zinc-800 px-4 py-5 text-sm text-zinc-600">
-					No words are blocked yet.
-				</div>
-			) : (
-				<div className="divide-y divide-zinc-800/60 border-y border-zinc-800/60">
-					{words.map((word) => (
-						<div key={word.id} className="flex items-center gap-3 py-3">
-							<div className="min-w-0 flex-1">
-								<p className="truncate text-sm font-medium text-zinc-200">
-									{word.word}
-								</p>
-								{word.normalized !== word.word.toLowerCase() && (
-									<p className="truncate font-mono text-xs text-zinc-700">
-										matched as {word.normalized}
-									</p>
-								)}
-							</div>
-							<form action={removeBlockedWordAction.bind(null, word.id)}>
-								<RemoveButton />
-							</form>
+			{showWords && (
+				<div id="blocked-word-list">
+					{words.length === 0 ? (
+						<div className="rounded-xl border border-dashed border-zinc-800 px-4 py-5 text-sm text-zinc-600">
+							No words are blocked yet.
 						</div>
-					))}
+					) : (
+						<div className="divide-y divide-zinc-800/60 border-y border-zinc-800/60">
+							{words.map((word) => (
+								<div key={word.id} className="flex items-center gap-3 py-3">
+									<div className="min-w-0 flex-1">
+										<p className="truncate text-sm font-medium text-zinc-200">
+											{word.word}
+										</p>
+										{word.normalized !== word.word.toLowerCase() && (
+											<p className="truncate font-mono text-xs text-zinc-700">
+												matched as {word.normalized}
+											</p>
+										)}
+									</div>
+									<form action={removeBlockedWordAction.bind(null, word.id)}>
+										<RemoveButton />
+									</form>
+								</div>
+							))}
+						</div>
+					)}
 				</div>
 			)}
 		</section>
