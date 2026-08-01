@@ -31,6 +31,22 @@ export const users = sqliteTable("users", {
 	createdAt: createdAt(),
 });
 
+export const blockedWords = sqliteTable(
+	"blocked_words",
+	{
+		id: text("id").primaryKey(),
+		word: text("word").notNull(),
+		normalized: text("normalized").notNull(),
+		createdBy: text("created_by")
+			.notNull()
+			.references(() => users.id),
+		createdAt: createdAt(),
+	},
+	(table) => [
+		uniqueIndex("blocked_words_normalized_unique").on(table.normalized),
+	],
+);
+
 export const forms = sqliteTable(
 	"forms",
 	{

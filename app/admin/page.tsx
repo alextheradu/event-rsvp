@@ -2,7 +2,9 @@ import { and, count, eq } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import AllowToggle from "@/components/AllowToggle";
+import BlockedWordsManager from "@/components/BlockedWordsManager";
 import { getSession, isAdmin } from "@/lib/auth";
+import { getBlockedWords } from "@/lib/content-policy";
 import { db } from "@/lib/db";
 import { forms, rsvps, users } from "@/lib/schema";
 
@@ -15,6 +17,7 @@ export default async function AdminPage() {
 	if (!isAdmin(user)) notFound();
 
 	const allUsers = db.select().from(users).orderBy(users.createdAt).all();
+	const allBlockedWords = getBlockedWords(db);
 
 	const allForms = db
 		.select({
@@ -39,6 +42,8 @@ export default async function AdminPage() {
 	return (
 		<div className="max-w-2xl mx-auto space-y-10">
 			<h1 className="text-2xl font-bold tracking-tight">Admin</h1>
+
+			<BlockedWordsManager words={allBlockedWords} />
 
 			<section className="space-y-3">
 				<h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wide">

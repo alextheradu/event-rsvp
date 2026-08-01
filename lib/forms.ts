@@ -1,4 +1,5 @@
 import { count, eq, inArray } from "drizzle-orm";
+import { validateNewFormContent } from "./content-policy";
 import type { DB } from "./db";
 import type { ParsedEventDetails } from "./event-time";
 import {
@@ -108,6 +109,16 @@ export async function createForm(
 	if (input.slackChannelId && !SLACK_CHANNEL_RE.test(input.slackChannelId)) {
 		return { ok: false, error: "Invalid Slack channel ID" };
 	}
+	const contentError = validateNewFormContent(db, [
+		title,
+		slug,
+		input.description,
+		input.website,
+		input.eventDetails?.attendeeNotes,
+		input.eventDetails?.locationDisplay,
+		input.eventDetails?.onlineUrl,
+	]);
+	if (contentError) return { ok: false, error: contentError };
 	if (countFormsByCreator(db, creatorId) >= MAX_FORMS_PER_USER) {
 		return {
 			ok: false,

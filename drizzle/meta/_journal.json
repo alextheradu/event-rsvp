@@ -36,6 +36,13 @@
       "when": 1785439621873,
       "tag": "0004_verification-preference",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1785605760271,
+      "tag": "0005_condemned_sabra",
+      "breakpoints": true
     }
   ]
 }

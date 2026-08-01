@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { addBlockedWord } from "./content-policy";
 import { createForm, deleteForm, getFormBySlug } from "./forms";
 import {
 	channelAccessAttempts,
@@ -121,6 +122,51 @@ describe("createForm", () => {
 		// asserting the error text is identical on both paths.
 		const result = await createForm(db, uid, { ...base, slug: "meetup" });
 		expect(result).toEqual({ ok: false, error: "That URL is already taken" });
+	});
+
+	it.each([
+		{ title: "B@dword meetup", slug: "safe-event" },
+		{ title: "Safe meetup", slug: "the-badword-event" },
+		{
+			title: "Safe meetup",
+			slug: "safe-event",
+			description: "A b.a.d.w.o.r.d description",
+		},
+	])(
+		"rejects blocked visual variants anywhere in new form content",
+		async (input) => {
+			const db = createTestDb();
+			const uid = seedUser(db);
+			addBlockedWord(db, "badword", uid);
+			const result = await createForm(db, uid, { ...base, ...input });
+			expect(result).toEqual({
+				ok: false,
+				error: "This form includes a word that is not allowed",
+			});
+		},
+	);
+
+	it("allows emoji but rejects other Unicode symbols in new form content", async () => {
+		const db = createTestDb();
+		const uid = seedUser(db);
+		expect(
+			await createForm(db, uid, {
+				...base,
+				title: "Pizza night 🍕",
+				slug: "pizza-night",
+			}),
+		).toEqual({ ok: true, slug: "pizza-night" });
+		expect(
+			await createForm(db, uid, {
+				...base,
+				title: "Math ∑ night",
+				slug: "math-night",
+			}),
+		).toEqual({
+			ok: false,
+			error:
+				"Unsupported Unicode symbols are not allowed in forms; emoji are okay",
+		});
 	});
 });
 
