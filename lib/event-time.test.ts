@@ -15,6 +15,33 @@ describe("event time", () => {
 		expect(result.startAt?.toISOString()).toBe("2026-08-01T16:00:00.000Z");
 	});
 
+	it("allows the schedule to be omitted when the browser supplies a timezone", () => {
+		const result = validateEventDetails({
+			startLocal: null,
+			endLocal: null,
+			timezone: "America/New_York",
+			eventFormat: "tbd",
+			capacity: null,
+			attendeeNotes: null,
+			locationDisplay: null,
+			locationLatitude: null,
+			locationLongitude: null,
+			locationProvider: null,
+			locationPlaceId: null,
+			onlineUrl: null,
+		});
+
+		expect(result.startAt).toBeNull();
+		expect(result.endAt).toBeNull();
+		expect(result.timezone).toBeNull();
+	});
+
+	it("rejects a partially entered schedule", () => {
+		expect(() =>
+			parseEventWindow("2026-08-01T12:00", null, "America/New_York"),
+		).toThrow("Start, end, and timezone are required");
+	});
+
 	it("rejects DST gaps and ambiguous local times", () => {
 		expect(() =>
 			parseEventWindow(

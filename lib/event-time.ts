@@ -38,7 +38,9 @@ export function parseEventWindow(
 	endLocal: string | null,
 	timezone: string | null,
 ): { startAt: Date | null; endAt: Date | null; timezone: string | null } {
-	if (!startLocal && !endLocal && !timezone) {
+	// Browsers still submit the auto-detected timezone when both optional date
+	// fields are blank. Treat that as an omitted schedule instead of a partial one.
+	if (!startLocal && !endLocal) {
 		return { startAt: null, endAt: null, timezone: null };
 	}
 	if (!startLocal || !endLocal || !timezone) {
@@ -79,9 +81,6 @@ export function validateEventDetails(
 		input.endLocal,
 		input.timezone,
 	);
-	if (!window.startAt && !options.allowLegacyEmpty) {
-		throw new EventValidationError("Event schedule is required");
-	}
 	if (!input.eventFormat && !options.allowLegacyEmpty) {
 		throw new EventValidationError("Event format is required");
 	}

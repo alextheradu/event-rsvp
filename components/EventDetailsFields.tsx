@@ -88,8 +88,11 @@ export default function EventDetailsFields({
 	return (
 		<fieldset className="space-y-5 border-t border-zinc-800/80 pt-6">
 			<legend className="pr-3 text-sm font-semibold text-zinc-200">
-				Schedule & place
+				Schedule & place <span className="text-zinc-600">(optional)</span>
 			</legend>
+			<p className="text-xs leading-relaxed text-zinc-600">
+				You can leave the start and end blank if the date is not set yet.
+			</p>
 			<div className="grid sm:grid-cols-2 gap-4">
 				<label className="space-y-1.5 text-sm text-zinc-400">
 					<span>Starts</span>
@@ -97,7 +100,6 @@ export default function EventDetailsFields({
 						className={field}
 						type="datetime-local"
 						name="startLocal"
-						required
 						defaultValue={toLocalDateTime(
 							defaults.startAt ?? null,
 							defaultZone,
@@ -110,7 +112,6 @@ export default function EventDetailsFields({
 						className={field}
 						type="datetime-local"
 						name="endLocal"
-						required
 						defaultValue={toLocalDateTime(defaults.endAt ?? null, defaultZone)}
 					/>
 				</label>
@@ -118,12 +119,7 @@ export default function EventDetailsFields({
 			<div className="grid sm:grid-cols-2 gap-4">
 				<label className="space-y-1.5 text-sm text-zinc-400">
 					<span>Timezone</span>
-					<input
-						className={field}
-						name="timezone"
-						required
-						defaultValue={defaultZone}
-					/>
+					<input className={field} name="timezone" defaultValue={defaultZone} />
 				</label>
 				<label className="space-y-1.5 text-sm text-zinc-400">
 					<span>Capacity (optional)</span>
